@@ -21,6 +21,10 @@ public class DownloadOriginalPic {
 
 	private File file;					//将下载的图片数据保存到这个文件中
 	
+	private String originalUrl;		//原始大图的地址
+	
+	private String picSuffix = ".jpg";			//包括点号"."，也即".jpg"这样的，默认是.jpg
+	
 	public DownloadOriginalPic(){
 		
 	}
@@ -32,16 +36,21 @@ public class DownloadOriginalPic {
 	/**
 	 * 根据原始图片的地址，将图片下载到以filename为文件名的文件中
 	 * 
-	 * 注意：这里请求中的Cookie等信息是我在浏览器登录P站并手动F12查看某一张原始图片是的请求信息，
+	 * 注意1：这里请求中的Cookie等信息是我在浏览器登录P站并手动F12查看某一张原始图片是的请求信息，
 	 * 			 这里可能会失效！
+	 * 注意2：因为获取小图地址较为容易，如果通过点击再次请求原始大图地址，则需要多一次请求，所以
+	 * 			 	直接在代码中将小图地址转换为大图地址，这里srcUrl是小图地址
 	 * 
-	 * @param urlStr			原始图片的地址
+	 * @param urlStr			网页上小图的地址
 	 * @param filename		图片下载保存到磁盘上时的文件名
 	 */
-	public void getPicture(String urlStr){
+	public void getPicture(String srcUrl, String filename){
+		//注意，下面两个方式的顺序不能倒，不然图片后缀名会用默认的“.jpg”
+		changeToOriginalUrl(srcUrl);
+		newFileForPic(filename);
 		
 		try {
-			URL url = new URL(urlStr);
+			URL url = new URL(originalUrl);
 			HttpURLConnection conn = (HttpURLConnection)url.openConnection();
 			
 			
@@ -58,13 +67,11 @@ public class DownloadOriginalPic {
 			
 			String contentType = conn.getContentType();
 			System.out.println("contentType=" + contentType);
-			
-			
-			
-			FileOutputStream fileStream = new FileOutputStream(file);
-			
+				
 			try(InputStream in = new BufferedInputStream(conn.getInputStream())){
 				Reader reader = new InputStreamReader(in, "UTF-8");
+				
+				FileOutputStream fileStream = new FileOutputStream(file);
 				
 				long length = conn.getContentLength();
 				int tmp;
@@ -83,18 +90,84 @@ public class DownloadOriginalPic {
 		} catch (MalformedURLException e) {
 			e.printStackTrace();
 		}catch(IOException ex){
+			System.out.println("无法下载图片，请检查图片后缀是否正确！");
 			ex.printStackTrace();
 		}
 		
 	}
 	
+	private void newFileForPic(String filename){
+		String dir = "F:\\crawlerTest\\pixiv\\phaseone\\";		//将原始图片保存在这个路径下
+		File testDir = new File(dir);
+		if(!testDir.exists()){
+			testDir.mkdirs();
+		}
+		
+		String dirFilename = dir+ filename + picSuffix;
+		File tmpFile = new File(dirFilename);
+		
+		//如果文件已经存在，则在文件名后添加数字；如pixiv.jpg就变为pixiv1.jpg
+		int i = 1;
+		while(tmpFile.exists()){
+			//int dotIndex = filename.indexOf(".");
+			//String prefix = filename.substring(0, dotIndex);
+			//String suffix = filename.substring(dotIndex, filename.length());
+			String addfix = String.valueOf(i);
+			String filenameTmp = filename + addfix + picSuffix;
+			dirFilename = dir + filenameTmp;
+			tmpFile = new File(dirFilename);
+			++i;
+		}
+		
+		this.file = tmpFile;
+	}
+	
+	/**
+	 * 将从网页获取的小图的地址转换为原始大图的地址
+	 * 也就是将
+	 * http://i3.pixiv.net/c/600x600/img-master/img/2016/08/03/11/08/24/58227702_p0_master1200.jpg
+	 * 这样的小图的地址转换为原始大图的地址
+	 * http://i3.pixiv.net/img-original/img/2016/08/03/11/08/24/58227702_p0.jpg
+	 * 
+	 * @param srcUrl  小图的地址
+	 */
+	private void changeToOriginalUrl(String srcUrl){
+		System.out.println("小图地址：" + "\n" + srcUrl);
+		
+		//获取小图片的文件名，去掉后缀之前的_master1200就是原始大图的文件名
+		String srcFilename = srcUrl.substring(srcUrl.lastIndexOf("/") + 1, srcUrl.length());
+		//图片的后缀，也即是原始大图的文件名后缀，包括"."号，也即” .jpg "
+		picSuffix = srcFilename.substring(srcFilename.lastIndexOf("."), srcFilename.length());
+		//原始大图的文件名前缀
+		String oriPicPrefix = srcFilename.substring(0, srcFilename.lastIndexOf("_"));
+		//原始大图的文件名全称 也即“58227702_p0.jpg” 部分
+		String originalPicName = oriPicPrefix + picSuffix;
+		
+		//获取"img/2016/08/03/11/08/24/" 部分，这部分不需要修改
+		String imgdateStr = srcUrl.substring(srcUrl.lastIndexOf("img"), srcUrl.lastIndexOf("/") + 1);
+		//获取"/img-original/“ 部分，这部分是固定的
+		String imgOriginal = "/img-original/";
+		
+		//获取http头部的那部分"http://i3.pixiv.net"
+		String httpHeader = srcUrl.substring(0, srcUrl.indexOf("net") + 3);
+		
+		/*
+		 * 但要注意：如果http头部是类似于https://i.pximg.net 这样的，则要转换为
+		 * https://i3.pixiv.net，不过也不一定是i3，也有可能是i1,i2,i3,i4
+		 */
+		if(httpHeader.matches(".*pximg.net$")){
+			httpHeader = httpHeader.substring(0, httpHeader.indexOf("/")+2) + "i2.pixiv.net";	
+		}
+		
+		originalUrl = httpHeader + imgOriginal + imgdateStr + originalPicName;
+		System.out.println("原始大图地址：" + "\n" + originalUrl);
+	}
+	
 	public static void main(String[] args){
 		DownloadOriginalPic demo = new DownloadOriginalPic();
-		String picUrl = "http://i4.pixiv.net/img-original/img/2016/08/01/00/31/01/58186979_p0.jpg";
-		String filename = "F:\\crawlerTest\\pixiv\\pixiv05.jpg";
-		File file = new File(filename);
-		demo.setFile(file);
-		demo.getPicture(picUrl);
+		String picUrl = "http://i2.pixiv.net/c/600x600/img-master/img/2016/12/12/11/28/16/60345393_p0_master1200.png";
+		String filename = "pixiv";
+		demo.getPicture(picUrl, filename);
 	}
 }
 
