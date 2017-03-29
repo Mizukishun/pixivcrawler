@@ -104,7 +104,7 @@ public class DownloadOriginalPic {
 	}
 	
 	private void newFileForPic(String filename){
-		String dir = "F:\\crawlerTest\\pixiv\\phaseone\\";		//将原始图片保存在这个路径下
+		String dir = "F:\\crawlerTest\\pixiv\\藤原\\";		//将原始图片保存在这个路径下
 		File testDir = new File(dir);
 		if(!testDir.exists()){
 			testDir.mkdirs();
@@ -193,7 +193,7 @@ public class DownloadOriginalPic {
 	
 	public static void main(String[] args) throws IOException{
 		DownloadOriginalPic demo = new DownloadOriginalPic();
-		String picUrl = "http://i2.pixiv.net/c/600x600/img-master/img/2016/10/18/00/31/32/59521621_p0_master1200.jpg";
+		String picUrl = "http://i2.pixiv.net/c/150x150/img-master/img/2017/03/17/00/00/43/61945597_p0_master1200.jpg";
 		String filename = "secondPhase";
 		
 		demo.download(picUrl, filename);

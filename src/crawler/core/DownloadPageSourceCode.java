@@ -9,6 +9,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
@@ -16,33 +18,35 @@ import java.net.HttpURLConnection;
 
 public class DownloadPageSourceCode {
 
-	private String url;			//网页的地址，如：http://www.pixiv.net/member_illust.php?mode=medium&illust_id=61367958
+	//private String url;			//网页的地址，如：http://www.pixiv.net/member_illust.php?mode=medium&illust_id=61367958
 	
 	private String thumbnailPicUrl;		//小图的地址
 	
-	public DownloadPageSourceCode(String url){
-		this.url = url;
+	public DownloadPageSourceCode(){
+		
 	}
+	/*public DownloadPageSourceCode(String url){
+		this.url = url;
+	}*/
 	
 	/**
 	 * 提供给外部调用，以获取网页中的小图地址
 	 */
-	public String getThumbnailPicUrl(){
+	public String getThumbnailPicUrl(String url){
 		if(url == null){
 			System.out.println("为提供网页的地址，无法获取小图地址！");
 			return "Error";
 		}
-		String html = getHtml();
-		return regHtml(html);
+		String html = getHtml(url);
+		return regHtmlForThumbnailPicUrl(html);
 	}
 	
 	/**
-	 * 获取一名P站会员的一幅图片页面的源码，以便获取小图地址
-	 * 如：http://www.pixiv.net/member_illust.php?mode=medium&illust_id=59512854
-	 * 请求得到相应的HTML源码，其中包含了小图的地址
+	 * 获取页面的源代码，以便后续处理
+	 * 
 	 * @return
 	 */
-	private String getHtml(){
+	private String getHtml(String url){
 		
 		//urlStr = "http://www.pixiv.net/member_illust.php?mode=medium&illust_id=61367958";
 		
@@ -99,8 +103,8 @@ public class DownloadPageSourceCode {
 					html.append(new String(tmp, 0, c, "UTF-8"));
 				}
 				
-				System.out.println("========================HTML========================");
-				System.out.println(html.toString());
+				//System.out.println("========================HTML========================");
+				//System.out.println(html.toString());
 			}
 			
 			//String tmpStr = regHtml(html.toString());
@@ -126,7 +130,7 @@ public class DownloadPageSourceCode {
 	 * 
 	 * @param args
 	 */
-	private String regHtml(String sourceCode){
+	private String regHtmlForThumbnailPicUrl(String sourceCode){
 		String result = "";
 		
 		
@@ -156,14 +160,138 @@ public class DownloadPageSourceCode {
 		return thumbnailPicUrl;
 	}
 	
-	public static void main(String[] args) throws IOException{
-		String url = "http://www.pixiv.net/member_illust.php?mode=medium&illust_id=59665229";
+	/**
+	 * 根据会员的id，获取会员的所有作品的小图地址
+	 * 如http://www.pixiv.net/member_illust.php?id=4462245
+	 * 这个页面上便是id=4462245这个P站会员的个人所有作品，在这个页面上边有这些作品的地址
+	 * 如：http://i4.pixiv.net/c/150x150/img-master/img/2016/12/25/14/21/03/60547339_p0_master1200.jpg
+	 * <del>如：http://www.pixiv.net/member_illust.php?mode=medium&illust_id=60680252</del>
+	 * 
+	 * 
+	 * @param args
+	 * @throws IOException
+	 */
+	public List<String> getWorksUrlByMemId(String id){
+		String memUrlPrefix = "http://www.pixiv.net/member_illust.php?id=";
+		String memUrl = memUrlPrefix + id;
+		List<String> allWorksUrl = new ArrayList<>();
 		
-		DownloadPageSourceCode demo = new DownloadPageSourceCode(url);
+		//获取该页面源码
+		String memHtml = getHtml(memUrl);
+		//获取该成员作品的页数，也即该成员总共有多少页的作品，并把每页的地址放到worksPages中
+		List<String> worksPages = regHtmlForWorksPages(memHtml);
+		//提取该成员第一页上的所有作品地址
+		List<String> worksUrl = regHtmlForMemWorksUrl(memHtml);
+		
+		allWorksUrl.addAll(worksUrl);
+		for(String worksPage : worksPages){
+			String sourceCodeHtml = getHtml(worksPage);
+			worksUrl = regHtmlForMemWorksUrl(sourceCodeHtml);
+			allWorksUrl.addAll(worksUrl);
+		}
+		int worksCounts = allWorksUrl.size();
+		System.out.println("==========================================================");
+		System.out.println("id=" + id + "的成员共有" + worksCounts + "幅作品！");
+		System.out.println("所有作品的小图地址是：");
+		for(String small : allWorksUrl){
+			System.out.println(small);
+		}
+		
+		return allWorksUrl;
+	}
+	/**
+	 * 根据P站成员作品集地址页面的源码，提取出该成员的所有作品地址
+	 * 。。。
+	 * 经分析发现，在这个源码中就能获取到P站成员在该也中的所有作品的小图地址
+	 * 如：data-src="http://i2.pixiv.net/c/150x150/img-master/img/2017/03/17/00/00/43/61945597_p0_master1200.jpg"
+	 * 也即都在data-src这一属性中，所以只要提取出所有data-src属性的值就是所有小图的地址了
+	 * 
+	 * @param args
+	 * @throws IOException
+	 */
+	private List<String> regHtmlForMemWorksUrl(String memHtml){
+		List<String> firstPageUrls = new ArrayList<>();
+		//System.out.println("=================该id会员作品集第一页所有作品的地址data-src=====================");
+		
+		String reg = "data\\-src=\"http[\\w\\.\\-/:]+\"";		//http[\\w:/\\.\\-]+
+		Pattern pattern = Pattern.compile(reg);
+		Matcher matcher = pattern.matcher(memHtml);
+		while(matcher.find()){
+			String tmp = matcher.group(0);
+			//System.out.println(tmp);
+			
+			//再从含有data-src的字符串中提取出小图的地址
+			//如：data-src="http://i1.pixiv.net/c/150x150/img-master/img/2016/06/10/00/12/30/57313892_p0_master1200.jpg"
+			//提取出：http://i1.pixiv.net/c/150x150/img-master/img/2016/06/10/00/12/30/57313892_p0_master1200.jpg
+			String uReg = "http[\\w\\.\\-/:]+";
+			Pattern uPattern = Pattern.compile(uReg);
+			Matcher uMatcher = uPattern.matcher(tmp);
+			String imgUrl = "";
+			if(uMatcher.find()){
+				imgUrl = uMatcher.group(0);
+			}
+			firstPageUrls.add(imgUrl);
+		}
+		/*System.out.println("=======================上面对应的具体地址为========================");
+		for(String url : firstPageUrls){
+			System.out.println(url);
+		}*/
+
+		return firstPageUrls;
+	}
+	
+	/**
+	 * 根据成员的作品集页面的源码，找出该成员的作品总共有几页，并把每页的地址塞到List中返回;
+	 * 经分析页面源码，发现页数在class="pager-container"的DIV中
+	 * 
+	 * @param html
+	 * @return
+	 */
+	private List<String> regHtmlForWorksPages(String html){
+		System.out.println("===============匹配出的页数DIV为===================");
+		ArrayList<String> worksPagesUrl = new ArrayList<>();
+		String worksPagePrefix = "http://www.pixiv.net/member_illust.php";
+		
+		String reg = "class=\"pager\\-container\"[\\w\\s\\?\\.\\-/=\"<>;&]+class=\"next\"";		 //[\\w/<>;\"=\\s\\?&]+class=\"next\"
+		Pattern pattern = Pattern.compile(reg);
+		Matcher matcher = pattern.matcher(html);
+		if(matcher.find()){
+			String divStr = matcher.group(0);
+			
+			System.out.println(divStr);
+			
+			//从提取的DIV字符串中再提取出具体的页数的地址
+			String numReg = "\\?id=\\d+&amp;type=all&amp;p=\\d";
+			Pattern numPattern = Pattern.compile(numReg);
+			Matcher numMatcher = numPattern.matcher(divStr);
+			System.out.println("========================该成员作品的各页地址(不包含第一页）=====================");
+			while(numMatcher.find()){
+				String pageUrlSuffix = numMatcher.group(0);
+				String pageUrl = worksPagePrefix + pageUrlSuffix;
+				System.out.println(pageUrl);
+				worksPagesUrl.add(pageUrl);
+			}
+		}
+		
+		return worksPagesUrl;
+	}
+	
+	public static void main(String[] args) throws IOException{
+		//String url = "http://www.pixiv.net/member_illust.php?mode=medium&illust_id=59665229";
+		//String id = "4462245";		//幻像黒兎
+		String id="27517";				//藤原
+		
+		DownloadPageSourceCode demo = new DownloadPageSourceCode();
+		List<String> urls = demo.getWorksUrlByMemId(id);
+		DownloadOriginalPic downloadDemo = new DownloadOriginalPic();
+		String filename = "id_" + id + "N";
+		for(String picUrl : urls){
+			downloadDemo.download(picUrl, filename);
+		}
+		/*String picUrl = demo.getThumbnailPicUrl(url);
 		DownloadOriginalPic downloadDemo = new DownloadOriginalPic();
 		String filename = "secondPhase";
-		String picUrl = demo.getThumbnailPicUrl();
-		downloadDemo.download(picUrl, filename);
+		downloadDemo.download(picUrl, filename);*/
 		//demo.getHtml();
 		
 	}
