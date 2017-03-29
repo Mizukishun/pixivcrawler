@@ -2,6 +2,7 @@ package crawler.core;
 
 import java.io.BufferedInputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -44,12 +45,12 @@ public class DownloadOriginalPic {
 	 * @param urlStr			网页上小图的地址
 	 * @param filename		图片下载保存到磁盘上时的文件名
 	 */
-	public void getPicture(String srcUrl, String filename){
+	private void getPicture(String srcUrl, String filename) throws IOException{
 		//注意，下面两个方式的顺序不能倒，不然图片后缀名会用默认的“.jpg”
 		changeToOriginalUrl(srcUrl);
 		newFileForPic(filename);
 		
-		try {
+		//try {
 			URL url = new URL(originalUrl);
 			HttpURLConnection conn = (HttpURLConnection)url.openConnection();
 			
@@ -87,12 +88,18 @@ public class DownloadOriginalPic {
 			}
 			
 			
-		} catch (MalformedURLException e) {
+		/*} catch (MalformedURLException e) {
 			e.printStackTrace();
-		}catch(IOException ex){
+		}catch(FileNotFoundException fileEx){
 			System.out.println("无法下载图片，请检查图片后缀是否正确！");
+			System.out.println("原始大图地址：");
+			System.out.println(originalUrl);
+			
+			throw new IOException();
+		}catch(IOException ex){
+			System.out.println("IO出错！");
 			ex.printStackTrace();
-		}
+		}*/
 		
 	}
 	
@@ -163,11 +170,45 @@ public class DownloadOriginalPic {
 		System.out.println("原始大图地址：" + "\n" + originalUrl);
 	}
 	
-	public static void main(String[] args){
+	/**
+	 * 下载原始大图
+	 * 
+	 * 为了处理小图是jpg格式的图片，而原始大图却又是png格式的图片，所以再getPicture()方法外面
+	 * 再包一层，已处理找不到jpg格式的原始大图问题；
+	 * @param args
+	 * @throws IOException
+	 */
+	public void download(String picUrl, String filename) throws IOException{
+		try{
+			getPicture(picUrl, filename);
+		}catch(FileNotFoundException fileEx){
+			System.out.println("==================================================");
+			System.out.println("原小图地址：");
+			System.out.println(picUrl);
+			System.out.println("小图与大图的格式不匹配，现尝试以png格式请求图片的下载！");
+			picUrl = picUrl.replaceFirst("jpg", "png");
+			getPicture(picUrl, filename);
+		}
+	}
+	
+	public static void main(String[] args) throws IOException{
 		DownloadOriginalPic demo = new DownloadOriginalPic();
-		String picUrl = "http://i2.pixiv.net/c/600x600/img-master/img/2016/12/12/11/28/16/60345393_p0_master1200.png";
-		String filename = "pixiv";
-		demo.getPicture(picUrl, filename);
+		String picUrl = "http://i2.pixiv.net/c/600x600/img-master/img/2016/10/18/00/31/32/59521621_p0_master1200.jpg";
+		String filename = "secondPhase";
+		
+		demo.download(picUrl, filename);
+		/*try {
+			demo.getPicture(picUrl, filename);
+		}catch(FileNotFoundException fileEx){
+			System.out.println("原小图地址：");
+			System.out.println(picUrl);
+			System.out.println("图片不以jpg格式的图片，现尝试以png格式请求图片的下载！");
+			picUrl = picUrl.replaceFirst("jpg", "png");
+			demo.getPicture(picUrl, filename);
+		}catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}*/
 	}
 }
 
