@@ -10,10 +10,16 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
+
+import crawler.vo.Followers;
+
 import java.net.HttpURLConnection;
 
 public class DownloadPageSourceCode {
@@ -103,8 +109,8 @@ public class DownloadPageSourceCode {
 					html.append(new String(tmp, 0, c, "UTF-8"));
 				}
 				
-				System.out.println("========================HTML========================");
-				System.out.println(html.toString());
+				//System.out.println("========================HTML========================");
+				//System.out.println(html.toString());
 			}
 			
 			//String tmpStr = regHtml(html.toString());
@@ -398,22 +404,26 @@ public class DownloadPageSourceCode {
 			
 		}
 
-		System.out.println("======================关注用户的ID=======================");
+		/*System.out.println("======================关注用户的ID=======================");
 		for(String id : followersId){
 			System.out.println(id);
-		}
+		}*/
 		
 		
 		return followersId;
 	}
-	private List<String> regFollowersPageForFollowersName(String html){
-		List<String> followersName = new ArrayList<>();
+	private Map<String, String> regFollowersPageForFollowersName(String html){
+		Map<String, String> followersName = new HashMap<>();
 		
 		//先从每一个li标签中匹配出data-user_name="虫麻呂"，注意用户名的字符很杂，还有可能包含空格，特殊字符等等，
 		//但其中不会有的就是引号“，所以可以在其中用排除法来进行正则匹配
 		String reg = "data\\-user_name=\"[\\S\\s&&[^\"]]+\"";
 		Pattern pattern = Pattern.compile(reg);
 		
+		//先从每一个li标签中匹配出data-user_id="36"
+		String idreg = "data\\-user_id=\"\\d+\"";
+		Pattern idpattern = Pattern.compile(idreg);
+		
 		List<String> liTagList = regFollowersPageForFollowersLiTag(html);
 		for(String tag : liTagList){
 			//每一个tag都是诸如
@@ -421,32 +431,42 @@ public class DownloadPageSourceCode {
 			//的标签
 			Matcher matcher = pattern.matcher(tag);
 			
-			if(matcher.find()){
+			Matcher idmatcher = idpattern.matcher(tag);
+			
+			if(matcher.find() && idmatcher.find()){
 				String tmp = matcher.group(0);
 				//从data-user_name="虫麻呂"找出出 虫麻呂 ，这个就是关注用户的名称
 				//因为tmp的格式是固定的data-user_name="用户名"，所以可以直接用字符串的方法进行切割
 				String name = tmp.substring(16, tmp.length()-1);
-				followersName.add(name);
+				
+				String followersId = idmatcher.group(0);
+				followersId = followersId.substring(14, followersId.length()-1);
+				
+				followersName.put(followersId, name);
 			}
 			
 		}
 
-		System.out.println("======================关注用户的名称=======================");
+		/*System.out.println("======================关注用户的名称=======================");
 		for(String name : followersName){
 			System.out.println(name);
-		}		
+		}	*/	
 		
 		
 		return followersName;
 	}
-	private List<String> regFollowersPageForFollowersLink(String html){
-		List<String> followersLink = new ArrayList<>();
+	private Map<String, String> regFollowersPageForFollowersLink(String html){
+		Map<String, String> followersLink = new HashMap<>();
 		
 		
 		//先从每一个li标签中匹配出member.php?id=36
 		String reg = "member\\.php\\?id=\\d+";
 		Pattern pattern = Pattern.compile(reg);
 		
+		//先从每一个li标签中匹配出data-user_id="36"
+		String idreg = "data\\-user_id=\"\\d+\"";
+		Pattern idpattern = Pattern.compile(idreg);
+		
 		List<String> liTagList = regFollowersPageForFollowersLiTag(html);
 		for(String tag : liTagList){
 			//每一个tag都是诸如
@@ -454,20 +474,61 @@ public class DownloadPageSourceCode {
 			//的标签
 			Matcher matcher = pattern.matcher(tag);
 			
-			if(matcher.find()){
+			Matcher idmatcher = idpattern.matcher(tag);
+			
+			if(matcher.find()&&idmatcher.find()){
 				String suffix = matcher.group(0);
 				String link = "http://www.pixiv.net/" + suffix;
-				followersLink.add(link);
+				
+				String followersId = idmatcher.group(0);
+				followersId = followersId.substring(14, followersId.length()-1);
+				
+				
+				followersLink.put(followersId, link);
 				
 			}
 			
 		}
 
-		System.out.println("======================关注用户的链接地址=======================");
+		/*System.out.println("======================关注用户的链接地址=======================");
 		for(String link : followersLink){
 			System.out.println(link);
-		}		
+		}*/
 		return followersLink;
+	}
+	
+	/**
+	 * 从关注者第一个页面获取其它页面的链接，以便后面获取所有的关注者用户信息
+	 * 其中，其它页面的链接在如下的标签中
+	 * <a href="bookmark.php?type=user&amp;id=27517&amp;rest=show&amp;p=2">2</a>
+	 * @param html
+	 * @return
+	 */
+	private List<String> regFollowersPageForPagesLink(String html){
+		List<String> links = new ArrayList<>();
+		
+		String reg = "bookmark\\.php\\?[\\w=;&]+\">\\d</a>";
+		
+		Pattern pattern = Pattern.compile(reg);
+		Matcher matcher = pattern.matcher(html);
+		System.out.println("====================该成员关注的用户的其它页面的链接=======================");
+		while(matcher.find()){
+			//获取到 bookmark.php?type=user&amp;id=27517&amp;rest=show&amp;p=6">
+			String tmp = matcher.group(0);
+			//System.out.println(tmp);
+			
+			String prefix = "http://www.pixiv.net/";
+			tmp = tmp.replaceAll("&amp;", "&");
+			tmp = tmp.substring(0, tmp.length()-7);
+			String link = prefix + tmp;
+			
+			links.add(link);
+		}
+		
+		for(String l : links){
+			System.out.println(l);
+		}
+		return links;
 	}
 	
 	/**
@@ -481,8 +542,15 @@ public class DownloadPageSourceCode {
 	 * @param id
 	 * @return
 	 */
-	public List<String> getFollowersById(String id){
-		ArrayList<String> followers = new ArrayList<>();
+	public Followers getFollowersById(String id){
+		Followers followers = new Followers(id);
+		
+		List<String> followersID = new ArrayList<>();
+		Map<String, String> followersName = new HashMap<>();
+		Map<String, String> followersLink = new HashMap<>();
+		Map<String, String> followersWorksLink = new HashMap<>();
+		Map<String, String> followersFavoriteLink = new HashMap<>();
+		
 		//所关注的用户第一页
 		String followersUrlPrefix = "http://www.pixiv.net/bookmark.php?type=user&id=";
 		String followersUrl = followersUrlPrefix + id;
@@ -493,6 +561,26 @@ public class DownloadPageSourceCode {
 		//获取关注的用户数
 		String followersCounts = regFollowersPageForFollowersCounts(firstPage);
 		
+		//获取其它页的链接
+		List<String> moreLinks =  regFollowersPageForPagesLink(firstPage);
+		List<String> pagesLinks = new ArrayList<>();
+		//该成员所关注的用户共有多少页
+		pagesLinks.add(followersUrl);
+		pagesLinks.addAll(moreLinks);
+		
+		for(String pageUrl : pagesLinks){
+			String html = getHtml(pageUrl);
+			
+			//获取该页中所列出来的关注的用户的id
+			followersID.addAll(regFollowersPageForFollowersId(html));
+			
+			//获取该页中所列出来的关注的用户名称
+			followersName.putAll(regFollowersPageForFollowersName(html));
+			
+			//获取改业中所列出来的关注用户的链接地址
+			followersLink.putAll(regFollowersPageForFollowersLink(html));
+		}
+		/*
 		//获取该页中所列出来的关注的用户的id
 		List<String> firstPageFollowersID = regFollowersPageForFollowersId(firstPage);
 		
@@ -501,7 +589,43 @@ public class DownloadPageSourceCode {
 		
 		//获取改业中所列出来的关注用户的链接地址
 		List<String> firstPageFollowersLink = regFollowersPageForFollowersLink(firstPage);
+		*/
+		System.out.println("==============================所有关注用户的ID======================");
+		for(String tmp : followersID){
+			System.out.println(tmp);
+		}
+		System.out.println("==============================所有关注用户的名称======================");
+		for(Map.Entry tmp : followersName.entrySet()){
+			System.out.println(tmp.getKey() + "==" + tmp.getValue());
+		}
+		System.out.println("==============================所有关注用户的链接地址====================");
+		for(Map.Entry tmp : followersLink.entrySet()){
+			System.out.println(tmp.getKey() + "==" + tmp.getValue());
+		}
 		
+		/*
+		 * 因为用户的个人资料地址、作品地址、收藏地址很相似，所以直接在个人资料地址基础上添加用户的
+		 * 作品地址和收藏地址
+		 * 个人资料地址：http://www.pixiv.net/member.php?id=27517
+		 * 作品地址：http://www.pixiv.net/member_illust.php?id=27517
+		 * 收藏地址：http://www.pixiv.net/bookmark.php?id=27517
+		 */
+		for(Map.Entry entry : followersLink.entrySet()){
+			String followerUserId = (String) entry.getKey();
+			String followerLink = (String)entry.getValue();
+			String followerWorksLink = followerLink.replaceAll("member", "member_illust");
+			String followerFavoriteLink = followerLink.replaceAll("member", "bookmark");
+			followersWorksLink.put(followerUserId, followerWorksLink);
+			followersFavoriteLink.put(followerUserId, followerFavoriteLink);
+		}
+		
+		
+		followers.setFollowers_num(Integer.parseInt(followersCounts));
+		followers.setFollowers_id(followersID);
+		followers.setFollowers_link(followersLink);
+		followers.setFollowers_works_link(followersWorksLink);
+		followers.setFollowers_favorite_link(followersFavoriteLink);
+
 		return followers;
 	}
 	
@@ -511,17 +635,31 @@ public class DownloadPageSourceCode {
 		String id="27517";				//藤原
 		//String id = "490219";			//Hiten
 		
+		long start = System.currentTimeMillis();
+		Date startTime = new Date(start);
 		DownloadPageSourceCode demo = new DownloadPageSourceCode();
 		
-		demo.getFollowersById(id);
+		Followers followers = demo.getFollowersById(id);
+		List<String> AllFollowersId = followers.getFollowers_id();
+		for(String user_id : AllFollowersId){
+			
+			//根据id获取该成员的所有作品
+			List<String> urls = demo.getWorksUrlByMemId(user_id);
+			DownloadOriginalPic downloadDemo = new DownloadOriginalPic();
+			String filename = "id_" + id + "N";
+			for(String picUrl : urls){
+				downloadDemo.download(picUrl, filename);
+			}
+			
+		}
+		long end = System.currentTimeMillis();
+		Date endTime = new Date(end);
+		long dif = end-start;
+		Date difTime = new Date(dif);
+		System.out.println("开始时间：" + startTime.toString());
+		System.out.println("结束时间：" + endTime.toString());
+		System.out.println("所用时间：" + difTime.toString());
 		
-		//根据id获取该成员的所有作品
-		/*List<String> urls = demo.getWorksUrlByMemId(id);
-		DownloadOriginalPic downloadDemo = new DownloadOriginalPic();
-		String filename = "id_" + id + "N";
-		for(String picUrl : urls){
-			downloadDemo.download(picUrl, filename);
-		}*/
 		/*String picUrl = demo.getThumbnailPicUrl(url);
 		DownloadOriginalPic downloadDemo = new DownloadOriginalPic();
 		String filename = "secondPhase";
