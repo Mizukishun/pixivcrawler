@@ -104,7 +104,7 @@ public class DownloadOriginalPic {
 	}
 	
 	private void newFileForPic(String filename){
-		String dir = "F:\\crawlerTest\\pixiv\\藤原\\";		//将原始图片保存在这个路径下
+		String dir = "F:\\crawlerTest\\pixiv\\pixiv2\\";		//将原始图片保存在这个路径下
 		File testDir = new File(dir);
 		if(!testDir.exists()){
 			testDir.mkdirs();

@@ -103,8 +103,8 @@ public class DownloadPageSourceCode {
 					html.append(new String(tmp, 0, c, "UTF-8"));
 				}
 				
-				//System.out.println("========================HTML========================");
-				//System.out.println(html.toString());
+				System.out.println("========================HTML========================");
+				System.out.println(html.toString());
 			}
 			
 			//String tmpStr = regHtml(html.toString());
@@ -276,18 +276,252 @@ public class DownloadPageSourceCode {
 		return worksPagesUrl;
 	}
 	
+	/**
+	 * 根据成员关注者页面的源码找出该成员总共关注了多少用户
+	 * 该数子在<span class="count-badge">252</span>标签中
+	 * 
+	 * @param html
+	 * @return
+	 */
+	private String regFollowersPageForFollowersCounts(String html){
+		String counts = "";
+		
+		String reg = "class=\"count\\-badge\">\\d+";
+		Pattern pattern = Pattern.compile(reg);
+		Matcher matcher = pattern.matcher(html);
+		if(matcher.find()){
+			String tmp = matcher.group(0);
+			reg = "\\d+";
+			pattern = Pattern.compile(reg);
+			matcher = pattern.matcher(tmp);
+			if(matcher.find()){
+				counts = matcher.group(0);
+			}
+		}
+		System.out.println("===================================================");
+		System.out.println("该成员总共关注了 " + counts + " 名其它用户");
+		
+		return counts;
+	}
+	
+	/**
+	 * 获取该页面中该成员所关注的所有的用户的包含id链接及其用户名的li标签部分
+	 * <li><div class="usericon"><a href="member.php?id=465133" class="ui-profile-popup" data-user_id="465133" data-user_name="天三月"
+	 * 标签所包围，其中及包括该关注用户的ID ,还包括该用户的名称alt
+	 * 
+	 * 
+	 * 得到的结果是List,每条记录是如下
+	 * <li><div class="usericon"><a href="member.php?id=484261" class="ui-profile-popup" data-user_id="484261" data-user_name="irua"
+	 * <li><div class="usericon"><a href="member.php?id=36" class="ui-profile-popup" data-user_id="36" data-user_name="虫麻呂"
+	 * 
+	 * @param html
+	 * @return  
+	 */
+	private List<String> regFollowersPageForFollowersLiTag(String html){
+		List<String> followersLiTag = new ArrayList<>();
+		
+		String tmp;
+		//下面这个正则表达式中，如何匹配多语种（日语、中文、英语甚至包括数字）的名称是个问题
+		//这里暂时用 [\\S&&[^\"]]+ 来匹配一个或多个非空白字符，并排除掉引号，很有可能会把后面众多的其它无关字符都匹配出来
+		//竟然还有  桝石きのと◆コミ１【て35a】   这样的名字。。。
+		String reg = "<li><div class=\"usericon\"><a href=\"member\\.php\\?id=\\d+\" class=\"ui\\-profile\\-popup\" data\\-user_id=\"\\d+\" data\\-user_name=\"[\\S\\s&&[^\"]]+\"";
+		Pattern pattern = Pattern.compile(reg);
+		Matcher matcher = pattern.matcher(html);
+		//System.out.println("========================关注者<li>标签===================");
+		while(matcher.find()){
+			tmp = matcher.group(0);
+			//System.out.println(tmp);
+			followersLiTag.add(tmp);
+			/*
+			//找出包含用户ID的链接，也即匹配member.php?id=465133
+			String tmpReg = "member\\.php\\?id=\\d+";
+			Pattern tmpPattern = Pattern.compile(tmpReg);
+			Matcher tmpMatcher = tmpPattern.matcher(tmp);
+			if(tmpMatcher.find()){
+				followersLinkSuffix.add(tmpMatcher.group(0));
+			}
+			
+			//找出相应用户的名称，也即匹配出data-user_name="天三月"
+			tmpReg = "data\\-user_name=\"[\\S\\s&&[^\"]]+\"";
+			tmpPattern = Pattern.compile(tmpReg);
+			tmpMatcher = tmpPattern.matcher(tmp);
+			if(tmpMatcher.find()){
+				followersName.add(tmpMatcher.group(0));
+			}
+			*/
+		}
+		
+		/*System.out.println("======================关注用户的链接后缀======================");
+		for(String Link : followersLinkSuffix){
+			System.out.println(Link);
+		}
+		System.out.println("======================关注用户的名称======================");
+		for(String name : followersName){
+			System.out.println(name);
+		}
+		*/
+		return followersLiTag;
+	}
+	
+	/**
+	 * 从<li><div class="usericon"><a href="member.php?id=36" class="ui-profile-popup" data-user_id="36" data-user_name="虫麻呂"
+	 * 这样的先匹配出
+	 * data-user_id="484261"
+	 * 在匹配出484261，即是关注用户的ID
+	 * @param html
+	 * @return
+	 */
+	private List<String> regFollowersPageForFollowersId(String html){
+		List<String> followersId = new ArrayList<>();
+		
+		//先从每一个li标签中匹配出data-user_id="36"
+		String reg = "data\\-user_id=\"\\d+\"";
+		Pattern pattern = Pattern.compile(reg);
+		
+		List<String> liTagList = regFollowersPageForFollowersLiTag(html);
+		for(String tag : liTagList){
+			//每一个tag都是诸如
+			//<li><div class="usericon"><a href="member.php?id=36" class="ui-profile-popup" data-user_id="36" data-user_name="虫麻呂"
+			//的标签
+			Matcher matcher = pattern.matcher(tag);
+			
+			if(matcher.find()){
+				String tmp = matcher.group(0);
+				//从data-user_id="36"匹配出36，这个就是关注用户的ID
+				String tmpReg = "\\d+";
+				Pattern tmpPattern = Pattern.compile(tmpReg);
+				Matcher tmpMatcher = tmpPattern.matcher(tmp);
+				if(tmpMatcher.find()){
+					followersId.add(tmpMatcher.group(0));
+				}
+			}
+			
+		}
+
+		System.out.println("======================关注用户的ID=======================");
+		for(String id : followersId){
+			System.out.println(id);
+		}
+		
+		
+		return followersId;
+	}
+	private List<String> regFollowersPageForFollowersName(String html){
+		List<String> followersName = new ArrayList<>();
+		
+		//先从每一个li标签中匹配出data-user_name="虫麻呂"，注意用户名的字符很杂，还有可能包含空格，特殊字符等等，
+		//但其中不会有的就是引号“，所以可以在其中用排除法来进行正则匹配
+		String reg = "data\\-user_name=\"[\\S\\s&&[^\"]]+\"";
+		Pattern pattern = Pattern.compile(reg);
+		
+		List<String> liTagList = regFollowersPageForFollowersLiTag(html);
+		for(String tag : liTagList){
+			//每一个tag都是诸如
+			//<li><div class="usericon"><a href="member.php?id=36" class="ui-profile-popup" data-user_id="36" data-user_name="虫麻呂"
+			//的标签
+			Matcher matcher = pattern.matcher(tag);
+			
+			if(matcher.find()){
+				String tmp = matcher.group(0);
+				//从data-user_name="虫麻呂"找出出 虫麻呂 ，这个就是关注用户的名称
+				//因为tmp的格式是固定的data-user_name="用户名"，所以可以直接用字符串的方法进行切割
+				String name = tmp.substring(16, tmp.length()-1);
+				followersName.add(name);
+			}
+			
+		}
+
+		System.out.println("======================关注用户的名称=======================");
+		for(String name : followersName){
+			System.out.println(name);
+		}		
+		
+		
+		return followersName;
+	}
+	private List<String> regFollowersPageForFollowersLink(String html){
+		List<String> followersLink = new ArrayList<>();
+		
+		
+		//先从每一个li标签中匹配出member.php?id=36
+		String reg = "member\\.php\\?id=\\d+";
+		Pattern pattern = Pattern.compile(reg);
+		
+		List<String> liTagList = regFollowersPageForFollowersLiTag(html);
+		for(String tag : liTagList){
+			//每一个tag都是诸如
+			//<li><div class="usericon"><a href="member.php?id=36" class="ui-profile-popup" data-user_id="36" data-user_name="虫麻呂"
+			//的标签
+			Matcher matcher = pattern.matcher(tag);
+			
+			if(matcher.find()){
+				String suffix = matcher.group(0);
+				String link = "http://www.pixiv.net/" + suffix;
+				followersLink.add(link);
+				
+			}
+			
+		}
+
+		System.out.println("======================关注用户的链接地址=======================");
+		for(String link : followersLink){
+			System.out.println(link);
+		}		
+		return followersLink;
+	}
+	
+	/**
+	 * 根据会员Id，得到其所关注的所有用户id
+	 * 会员所关注的用户的页面在诸如
+	 * http://www.pixiv.net/bookmark.php?type=user&id=27517
+	 * http://www.pixiv.net/bookmark.php?type=user&id=27517&rest=show&p=2
+	 * 这些页面中，分为了不同页
+	 * 
+	 * 
+	 * @param id
+	 * @return
+	 */
+	public List<String> getFollowersById(String id){
+		ArrayList<String> followers = new ArrayList<>();
+		//所关注的用户第一页
+		String followersUrlPrefix = "http://www.pixiv.net/bookmark.php?type=user&id=";
+		String followersUrl = followersUrlPrefix + id;
+		
+		//获取第一页的源代码，从中找出第一页所有关注的用户的id，以及是否有多页的关注用户
+		String firstPage = getHtml(followersUrl);
+		
+		//获取关注的用户数
+		String followersCounts = regFollowersPageForFollowersCounts(firstPage);
+		
+		//获取该页中所列出来的关注的用户的id
+		List<String> firstPageFollowersID = regFollowersPageForFollowersId(firstPage);
+		
+		//获取该页中所列出来的关注的用户名称
+		List<String> firstPageFollowersName = regFollowersPageForFollowersName(firstPage);
+		
+		//获取改业中所列出来的关注用户的链接地址
+		List<String> firstPageFollowersLink = regFollowersPageForFollowersLink(firstPage);
+		
+		return followers;
+	}
+	
 	public static void main(String[] args) throws IOException{
 		//String url = "http://www.pixiv.net/member_illust.php?mode=medium&illust_id=59665229";
 		//String id = "4462245";		//幻像黒兎
 		String id="27517";				//藤原
+		//String id = "490219";			//Hiten
 		
 		DownloadPageSourceCode demo = new DownloadPageSourceCode();
-		List<String> urls = demo.getWorksUrlByMemId(id);
+		
+		demo.getFollowersById(id);
+		
+		//根据id获取该成员的所有作品
+		/*List<String> urls = demo.getWorksUrlByMemId(id);
 		DownloadOriginalPic downloadDemo = new DownloadOriginalPic();
 		String filename = "id_" + id + "N";
 		for(String picUrl : urls){
 			downloadDemo.download(picUrl, filename);
-		}
+		}*/
 		/*String picUrl = demo.getThumbnailPicUrl(url);
 		DownloadOriginalPic downloadDemo = new DownloadOriginalPic();
 		String filename = "secondPhase";
