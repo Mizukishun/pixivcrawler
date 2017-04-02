@@ -28,6 +28,8 @@ public class DownloadPageSourceCode {
 	
 	private String thumbnailPicUrl;		//小图的地址
 	
+	private String worksPageHtml;			//成员所有作品页面的HTML源码
+	
 	public DownloadPageSourceCode(){
 		
 	}
@@ -77,6 +79,7 @@ public class DownloadPageSourceCode {
 			conn.addRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36");
 			//conn.addRequestProperty("mode", "medium");
 			//conn.addRequestProperty("illust_id", "61367958");
+			conn.setConnectTimeout(30000);
 			conn.connect();
 			
 			String contentType = conn.getContentType();
@@ -85,6 +88,8 @@ public class DownloadPageSourceCode {
 			String contentEncoding = conn.getContentEncoding();
 			long contentLength = conn.getContentLength();
 			
+			//conn.setConnectTimeout(3000);
+			
 			Object content = conn.getContent();
 			
 			System.out.println("ContentType : " + contentType);
@@ -92,7 +97,7 @@ public class DownloadPageSourceCode {
 			System.out.println("ResponseCode : " + responseCode);
 			System.out.println("contentEncoding : " + contentEncoding);
 			System.out.println("ContentLength : " + contentLength);
-			System.out.println("Content:" + content);
+			System.out.println("Content:" + content);  
 			
 			try(InputStream in = conn.getInputStream()){
 				//BufferedReader reader = new BufferedReader(new InputStreamReader(in, "UTF-8"));
@@ -182,12 +187,17 @@ public class DownloadPageSourceCode {
 		String memUrl = memUrlPrefix + id;
 		List<String> allWorksUrl = new ArrayList<>();
 		
-		//获取该页面源码
-		String memHtml = getHtml(memUrl);
+		if(worksPageHtml == null || worksPageHtml == ""){
+			//获取该页面源码
+			worksPageHtml = getHtml(memUrl);
+		}
+		
 		//获取该成员作品的页数，也即该成员总共有多少页的作品，并把每页的地址放到worksPages中
-		List<String> worksPages = regHtmlForWorksPages(memHtml);
+		List<String> worksPages = regHtmlForWorksPages(worksPageHtml);
 		//提取该成员第一页上的所有作品地址
-		List<String> worksUrl = regHtmlForMemWorksUrl(memHtml);
+		List<String> worksUrl = regHtmlForMemWorksUrl(worksPageHtml);
+		//获取该成员的P站昵称
+		String pixivName = regHtmlForAuthorName(worksPageHtml);
 		
 		allWorksUrl.addAll(worksUrl);
 		for(String worksPage : worksPages){
@@ -197,7 +207,7 @@ public class DownloadPageSourceCode {
 		}
 		int worksCounts = allWorksUrl.size();
 		System.out.println("==========================================================");
-		System.out.println("id=" + id + "的成员共有" + worksCounts + "幅作品！");
+		System.out.println(pixivName + "(id=" + id + ")的成员共有" + worksCounts + "幅作品！");
 		System.out.println("所有作品的小图地址是：");
 		for(String small : allWorksUrl){
 			System.out.println(small);
@@ -619,8 +629,10 @@ public class DownloadPageSourceCode {
 			followersFavoriteLink.put(followerUserId, followerFavoriteLink);
 		}
 		
-		
-		followers.setFollowers_num(Integer.parseInt(followersCounts));
+		if(followersCounts != "" && followersCounts != null){
+			
+			followers.setFollowers_num(Integer.parseInt(followersCounts));
+		}
 		followers.setFollowers_id(followersID);
 		followers.setFollowers_link(followersLink);
 		followers.setFollowers_works_link(followersWorksLink);
@@ -629,11 +641,54 @@ public class DownloadPageSourceCode {
 		return followers;
 	}
 	
+	/**
+	 * 从成员的所有作品页面中获取该成员在P站的昵称
+	 * 
+	 * @param worksPageSourceCode 该成员所有作品页面的HTML字符串
+	 * @return
+	 */
+	private String regHtmlForAuthorName(String html){
+		String name = "";
+		
+		
+		String reg = "class=\"user\">[\\s\\S&&[^</h1>]]+</h1>";
+		Pattern pattern = Pattern.compile(reg);
+		Matcher matcher = pattern.matcher(html);
+		if(matcher.find()){
+			String tmp = matcher.group(0);
+			int index = tmp.indexOf(">");
+			name = tmp.substring(index+1, tmp.length()-5);
+		}
+		
+		return name;
+	}
+	
+	public String getAuthorNameById(String id){
+		String name = "";
+		String memUrlPrefix = "http://www.pixiv.net/member_illust.php?id=";
+		String memUrl = memUrlPrefix + id;
+		
+		if(worksPageHtml == null || worksPageHtml == ""){
+			//先获取该id成员所有作品页面的html源码
+			worksPageHtml = getHtml(memUrl);
+		}
+		
+		//在获取该id所对应的P站昵称
+		name = regHtmlForAuthorName(worksPageHtml);
+		
+		return name;
+	}
+	
 	public static void main(String[] args) throws IOException{
 		//String url = "http://www.pixiv.net/member_illust.php?mode=medium&illust_id=59665229";
 		//String id = "4462245";		//幻像黒兎
-		String id="27517";				//藤原
+		//String id="27517";				//藤原
 		//String id = "490219";			//Hiten
+		//String id	= "152142";			//すいひ
+		//String id = "512849";			//刃天
+		//String id = "1584611";			//卑しい人间
+		//String id = "548883";			//タロ
+		String id = "4754550";
 		
 		long start = System.currentTimeMillis();
 		Date startTime = new Date(start);
@@ -646,25 +701,51 @@ public class DownloadPageSourceCode {
 			//根据id获取该成员的所有作品
 			List<String> urls = demo.getWorksUrlByMemId(user_id);
 			DownloadOriginalPic downloadDemo = new DownloadOriginalPic();
-			String filename = "id_" + id + "N";
+			String filename = "id_" +user_id + "N";
 			for(String picUrl : urls){
-				downloadDemo.download(picUrl, filename);
+				try{
+					
+					downloadDemo.download(picUrl, filename);
+				}catch(IOException ex){
+					System.out.println("==========================出错了==========================");
+					System.out.println(ex.getMessage());
+					ex.printStackTrace();
+					continue;
+				}
 			}
 			
 		}
-		long end = System.currentTimeMillis();
-		Date endTime = new Date(end);
-		long dif = end-start;
-		Date difTime = new Date(dif);
-		System.out.println("开始时间：" + startTime.toString());
-		System.out.println("结束时间：" + endTime.toString());
-		System.out.println("所用时间：" + difTime.toString());
 		
+		/*
+		//根据id获取该成员的所有作品
+		List<String> urls = demo.getWorksUrlByMemId(id);
+		DownloadOriginalPic downloadDemo = new DownloadOriginalPic();
+		String filename = "id_" + id + "N";
+		for(String picUrl : urls){
+			try{
+				
+				downloadDemo.download(picUrl, filename);
+			}catch(IOException ex){
+				System.out.println("==========================出错了==========================");
+				System.out.println(ex.getMessage());
+				ex.printStackTrace();
+				continue;
+			}
+		}
+		*/
 		/*String picUrl = demo.getThumbnailPicUrl(url);
 		DownloadOriginalPic downloadDemo = new DownloadOriginalPic();
 		String filename = "secondPhase";
 		downloadDemo.download(picUrl, filename);*/
 		//demo.getHtml();
 		
+		
+		long end = System.currentTimeMillis();
+		Date endTime = new Date(end);
+		long dif = end-start;
+		//String difTime = en
+		System.out.println("开始时间：" + startTime.toString());
+		System.out.println("结束时间：" + endTime.toString());
+		//System.out.println("所用时间：" + difTime.toString());
 	}
 }

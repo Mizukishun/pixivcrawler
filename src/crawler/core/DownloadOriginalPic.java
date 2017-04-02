@@ -26,6 +26,8 @@ public class DownloadOriginalPic {
 	
 	private String picSuffix = ".jpg";			//包括点号"."，也即".jpg"这样的，默认是.jpg
 	
+	String baseDir = "F:\\crawlerTest\\pixiv\\pixiv\\";		//将原始图片保存在这个路径下
+	
 	public DownloadOriginalPic(){
 		
 	}
@@ -104,13 +106,18 @@ public class DownloadOriginalPic {
 	}
 	
 	private void newFileForPic(String filename){
-		String dir = "F:\\crawlerTest\\pixiv\\pixiv3\\";		//将原始图片保存在这个路径下
+		String dir = baseDir;
+		
+		//如果传过来的文件名中有指定文件夹，则将该文件夹合并到dir中
+		if(filename.indexOf("\\") != -1){
+			dir += filename.substring(0, filename.lastIndexOf("\\")+1);
+		}
 		File testDir = new File(dir);
 		if(!testDir.exists()){
 			testDir.mkdirs();
 		}
 		
-		String dirFilename = dir+ filename + picSuffix;
+		String dirFilename = baseDir + filename + picSuffix;
 		File tmpFile = new File(dirFilename);
 		
 		//如果文件已经存在，则在文件名后添加数字；如pixiv.jpg就变为pixiv1.jpg
@@ -121,7 +128,7 @@ public class DownloadOriginalPic {
 			//String suffix = filename.substring(dotIndex, filename.length());
 			String addfix = String.valueOf(i);
 			String filenameTmp = filename + addfix + picSuffix;
-			dirFilename = dir + filenameTmp;
+			dirFilename = baseDir + filenameTmp;
 			tmpFile = new File(dirFilename);
 			++i;
 		}
