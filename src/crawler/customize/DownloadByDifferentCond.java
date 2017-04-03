@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 import crawler.core.DownloadOriginalPic;
 import crawler.core.DownloadPageSourceCode;
@@ -15,7 +16,6 @@ public class DownloadByDifferentCond {
 	 * 只下载该id成员的所有作品
 	 * 
 	 * @param id
-	 * @param dir		该成员的作品统一放到dir文件夹下，图片的命名统一用id+"N"的格式
 	 */
 	public void downloadAllWorksByMemId(String id){
 		long startTime = System.currentTimeMillis();
@@ -30,7 +30,7 @@ public class DownloadByDifferentCond {
 		
 		DownloadOriginalPic download = new DownloadOriginalPic();
 		
-		String filename =  authorName + "\\" + id + "N";
+		String filename =  authorName + "/" + id + "N";
 		
 		for(String url : allUrls){
 			try{
@@ -58,7 +58,7 @@ public class DownloadByDifferentCond {
 		/**
 		 * 该成员所关注的所有的用户的所有作品都放在id+“followers"的文件夹下，图片命名统一用各用户各自的id+”N"
 		 */
-		String folder = id + "followers\\";
+		String folder = id + "followers/";
 		
 		List<String> followersId = followers.getFollowers_id();
 		
@@ -87,6 +87,35 @@ public class DownloadByDifferentCond {
 		
 		printTime(startTime);
 		
+	}
+	
+	/**
+	 * 下载该成员所收藏的所有图片
+	 * 图片存放在以该成员id+"favorites"命名的文件夹中，图片以用户id+"N"统一命名
+	 * @param id
+	 */
+	public void downloadAllFavoritePicByMemId(String id){
+		long startTime = System.currentTimeMillis();
+		DownloadPageSourceCode dpsc = new DownloadPageSourceCode();
+		DownloadOriginalPic download = new DownloadOriginalPic();
+		
+		String folder = id + "favorites/";
+		
+		Map<String, String> linkAndId = dpsc.getFavoriteWorksUrlByMemId(id);
+		for(Map.Entry entry : linkAndId.entrySet()){
+			String userId = (String) entry.getValue();
+			String filename = folder + userId + "N";
+			String url = (String)entry.getKey();
+			try{
+				download.download(url, filename);
+			}catch(IOException ex){
+				System.out.println("=========================出错了==========================");
+				ex.printStackTrace();
+				continue;
+			}
+		}
+		
+		printTime(startTime);
 	}
 	
 	

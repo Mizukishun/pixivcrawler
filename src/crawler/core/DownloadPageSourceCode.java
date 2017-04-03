@@ -187,11 +187,12 @@ public class DownloadPageSourceCode {
 		String memUrl = memUrlPrefix + id;
 		List<String> allWorksUrl = new ArrayList<>();
 		
-		if(worksPageHtml == null || worksPageHtml == ""){
+		/*if(worksPageHtml == null || worksPageHtml == ""){
 			//获取该页面源码
 			worksPageHtml = getHtml(memUrl);
-		}
-		
+		}*/
+		//获取该页面源码
+		worksPageHtml = getHtml(memUrl);
 		//获取该成员作品的页数，也即该成员总共有多少页的作品，并把每页的地址放到worksPages中
 		List<String> worksPages = regHtmlForWorksPages(worksPageHtml);
 		//提取该成员第一页上的所有作品地址
@@ -668,15 +669,169 @@ public class DownloadPageSourceCode {
 		String memUrlPrefix = "http://www.pixiv.net/member_illust.php?id=";
 		String memUrl = memUrlPrefix + id;
 		
-		if(worksPageHtml == null || worksPageHtml == ""){
+		/*if(worksPageHtml == null || worksPageHtml == ""){
 			//先获取该id成员所有作品页面的html源码
 			worksPageHtml = getHtml(memUrl);
-		}
+		}*/
+		//先获取该id成员所有作品页面的html源码
+		worksPageHtml = getHtml(memUrl);
 		
 		//在获取该id所对应的P站昵称
 		name = regHtmlForAuthorName(worksPageHtml);
 		
 		return name;
+	}
+	
+	/*********************************************************收藏图片页面**************************************************************/
+	
+	/**
+	 * 获取收藏图片页面中总共有多少件图片
+	 * 图片的总数量在如下的标签中
+	 * <span class="count-badge">516件</span>
+	 * 
+	 * @param html
+	 * @return
+	 */
+	private String regFavoritePageForPicCounts(String html){
+		String pageCounts = "";
+		
+		String reg = "class=\"count\\-badge\">\\d+";
+		
+		Pattern pattern = Pattern.compile(reg);
+		Matcher matcher = pattern.matcher(html);
+		if(matcher.find()){
+			String tmp = matcher.group(0);
+			pageCounts = tmp.substring(tmp.lastIndexOf(">")+1, tmp.length());
+		}
+		
+		return pageCounts;
+	}
+	
+	/**
+	 * 获取一个收藏页面中的所有图片的链接地址及其对应的id
+	 * 
+	 * 其实一个页面20张图片都是在如下的标签中的
+	 * 
+	 * class="_layout-thumbnail"><img src="http://source.pixiv.net/www/images/common/transparent.gif"
+	 * class="ui-scroll-view"data-filter="thumbnail-filter lazy-image"
+	 * data-src="https://i.pximg.net/c/150x150/img-master/img/2016/02/09/20/24/38/55184464_p0_master1200.jpg"
+	 * data-type="illust"data-id="55184464"
+	 * data-tags="女の子 オリ???ナル 制服 セーラー服 バレンタイン 百合 黒タイツ 差し出す 百合1000users入り"
+	 * data-user-id="1765103">
+	 * 
+	 * 注意：
+	 * 1、一个成员有可能收藏同一名用户的多张图片，所以绝对不能用用户id来作为Map的键，而应该用图片的地址来
+	 * 		作为Map的键，而对应的用户id则最为值
+	 * 
+	 * @param favoritePage
+	 * @return 
+	 */
+	private Map<String, String> regFavoritePageForAllPicLink(String favoritePage){
+		Map<String, String> allPicLinkFromSinglePage = new HashMap<>();
+		/**
+		 * data-src="https://i.pximg.net/c/150x150/img-master/img/2016/02/09/20/24/38/55184464_p0_master1200.jpg"data-type="illust"data-id="55184464"data-tags="女の子 オリ???ナル 制服 セーラー服 バレンタイン 百合 黒タイツ 差し出す 百合1000users入り"data-user-id="1765103"
+		 */
+		//首先提炼出该上面所示的标签内容
+		//String firstReg = "data\\-src=\"http[\\w\\-\\./:]+\"data\\-type=\"[\\w]+\" data\\-id=\"[\\w]+\"data\\-tags=\"[\\s\\S&&[^\"]+\"data\\-user\\-id=\"[\\d]+\"";
+		
+		String firstReg = "data\\-src=\"http[\\w\\-\\./:]+\"data\\-type=\"[\\w]+\"data\\-id=\"[\\w]+\"data\\-tags=\"[\\s\\S&&[^\"]]+\"data\\-user\\-id=\"[\\d]+\"";
+		Pattern firstPattern = Pattern.compile(firstReg);
+		
+		Matcher firstMatcher = firstPattern.matcher(favoritePage);
+		while(firstMatcher.find()){
+			String divStr = firstMatcher.group(0);
+			
+			String link = "";			//该图片的链接
+			String id = "";				//该图片的主人id
+			
+			//获取data-src部分，从中提取出该图片的链接地址
+			link = divStr.substring(10, divStr.indexOf("data-type")-1);
+			//获取data-user-id部分，从中提取出该图片的主人id
+			id = divStr.substring(divStr.lastIndexOf("=")+2, divStr.length()-1);
+			allPicLinkFromSinglePage.put(link, id);
+		}
+		
+		for(Map.Entry tmp : allPicLinkFromSinglePage.entrySet()){
+			System.out.println("id=" + tmp.getValue() + "==" + tmp.getKey());
+		}
+		System.out.println("===========================================================");
+		
+		return allPicLinkFromSinglePage;
+	}
+	
+	/**
+	 * 根据成员id查询出该成员所收藏的所有图片的地址
+	 * 
+	 * 注意，返回的Map中，键是小图的链接地址，而值则是对应用户的id
+	 * 
+	 * @param id		成员的id
+	 * @return 			返回的小图的地址，它在DownloadOriginalPic.java类里会自动转换成相应的原始大图地址
+	 */
+	public Map<String, String> getFavoriteWorksUrlByMemId(String id){
+		//成员收藏图片的页面地址
+		String prefix_url = "http://www.pixiv.net/bookmark.php?id=";
+		String url = prefix_url + id;
+		
+		//根据该地址获取收藏图片页面的源码
+		String favoritePageHtml = getHtml(url);
+		//System.out.println("==========================收藏图片页面源码======================");
+		//System.out.println(favoritePageHtml);
+		
+		//获取该id的P站昵称
+		
+		//分析源码页面，获取时收藏图片的数量
+		String count_badge = regFavoritePageForPicCounts(favoritePageHtml);
+		System.out.println("==========================收藏的图片数量======================");
+		System.out.println("id=" + id +"的成员总共收藏了" + count_badge + "张图片");
+		
+		/**
+		 * 获取收藏图片的页面总共有多少页。
+		 * 这里要注意，收藏页面中，每一页显示20张图片，每次最多只能显示9页，如果收藏超过了180张图片
+		 * 那第9页之后的页数在页面源码是无法得出的；所以这里采用直接用总的收藏图片树，除以每页显示的图片数，
+		 * 这样就获取到了收藏图片的总的页数，从而拼凑得出每页的相应链接地址
+		 */
+		int picCounts = Integer.valueOf(count_badge);
+		int pageCounts;
+		if(picCounts > 20){
+			pageCounts = picCounts / 20 +1;
+		}else{
+			pageCounts = 1;
+		}
+		
+		//收藏图片页面的每页链接都是如下格式的
+		//http://www.pixiv.net/bookmark.php?id=512849&rest=show&p=2
+		List<String> pageUrls = new ArrayList<>();
+		for(int i = 1; i <= pageCounts; i++){
+			pageUrls.add("http://www.pixiv.net/bookmark.php?id=" + id + "&rest=show&p=" + i);
+		}
+		
+		
+		//从第一页开始，到最后一页，分别获取对应的的源码,并分析获取其中每页的所有图片链接地址
+		Map<String, String> allPicUrls = new HashMap<>();
+		for(String pageUrl : pageUrls){
+			String page = getHtml(pageUrl);
+			//System.out.println("这个页面内的图片有这些：" + pageUrl);
+			//获取该页面中所有图片的链接地址以及图片对应的id
+			allPicUrls.putAll(regFavoritePageForAllPicLink(page));
+		}
+		
+		
+		System.out.println("===========================所有收藏的图片地址为==================");
+		for(Map.Entry entry : allPicUrls.entrySet()){
+			System.out.println(entry.getValue() + "==" + entry.getKey());
+		}
+		
+		System.out.println("============================收藏统计==========================");
+		System.out.println("共有" + pageUrls.size() + "页收藏");
+		System.out.println("该用户共收藏了" + picCounts + "张图片");
+		if(allPicUrls.size() != picCounts){
+			System.out.println("但获取到的图片地址只有" + allPicUrls.size() + "张图片");
+		}
+		
+		
+		return allPicUrls;
+
+		
 	}
 	
 	public static void main(String[] args) throws IOException{
@@ -685,12 +840,16 @@ public class DownloadPageSourceCode {
 		//String id="27517";				//藤原
 		//String id = "490219";			//Hiten
 		//String id	= "152142";			//すいひ
-		//String id = "512849";			//刃天
+		String id = "512849";			//刃天
 		//String id = "1584611";			//卑しい人间
 		//String id = "548883";			//タロ
-		String id = "4754550";
+		//String id = "4754550";
+		DownloadPageSourceCode demo = new DownloadPageSourceCode();
+		demo.getFavoriteWorksUrlByMemId(id);
 		
-		long start = System.currentTimeMillis();
+		
+		
+		/*long start = System.currentTimeMillis();
 		Date startTime = new Date(start);
 		DownloadPageSourceCode demo = new DownloadPageSourceCode();
 		
@@ -714,7 +873,7 @@ public class DownloadPageSourceCode {
 				}
 			}
 			
-		}
+		}*/
 		
 		/*
 		//根据id获取该成员的所有作品
@@ -740,12 +899,12 @@ public class DownloadPageSourceCode {
 		//demo.getHtml();
 		
 		
-		long end = System.currentTimeMillis();
+		/*long end = System.currentTimeMillis();
 		Date endTime = new Date(end);
 		long dif = end-start;
 		//String difTime = en
 		System.out.println("开始时间：" + startTime.toString());
-		System.out.println("结束时间：" + endTime.toString());
+		System.out.println("结束时间：" + endTime.toString());*/
 		//System.out.println("所用时间：" + difTime.toString());
 	}
 }

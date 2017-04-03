@@ -26,7 +26,7 @@ public class DownloadOriginalPic {
 	
 	private String picSuffix = ".jpg";			//包括点号"."，也即".jpg"这样的，默认是.jpg
 	
-	String baseDir = "F:\\crawlerTest\\pixiv\\pixiv\\";		//将原始图片保存在这个路径下
+	String baseDir = "F:/crawlerTest/pixiv/pixiv/";		//将原始图片保存在这个路径下
 	
 	public DownloadOriginalPic(){
 		
@@ -109,8 +109,8 @@ public class DownloadOriginalPic {
 		String dir = baseDir;
 		
 		//如果传过来的文件名中有指定文件夹，则将该文件夹合并到dir中
-		if(filename.indexOf("\\") != -1){
-			dir += filename.substring(0, filename.lastIndexOf("\\")+1);
+		if(filename.indexOf("/") != -1){
+			dir += filename.substring(0, filename.lastIndexOf("/")+1);
 		}
 		File testDir = new File(dir);
 		if(!testDir.exists()){
