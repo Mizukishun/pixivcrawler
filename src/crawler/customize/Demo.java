@@ -5,7 +5,7 @@ public class Demo {
 	public static void main(String[] args){
 		DownloadByDifferentCond demo = new DownloadByDifferentCond();
 		
-		String id = "1277";
+		String id = "105026";
 		
 		//只下载该成员的所有作品
 		//demo.downloadAllWorksByMemId(id);

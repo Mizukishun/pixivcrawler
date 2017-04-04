@@ -194,25 +194,27 @@ public class DownloadPageSourceCode {
 		//获取该页面源码
 		worksPageHtml = getHtml(memUrl);
 		//获取该成员作品的页数，也即该成员总共有多少页的作品，并把每页的地址放到worksPages中
-		List<String> worksPages = regHtmlForWorksPages(worksPageHtml);
+		List<String> worksPages = regHtmlForWorksPages(id, worksPageHtml);
 		//提取该成员第一页上的所有作品地址
-		List<String> worksUrl = regHtmlForMemWorksUrl(worksPageHtml);
+		List<String> worksUrl = new ArrayList<>();			//regHtmlForMemWorksUrl(worksPageHtml);
 		//获取该成员的P站昵称
 		String pixivName = regHtmlForAuthorName(worksPageHtml);
 		
-		allWorksUrl.addAll(worksUrl);
+		//allWorksUrl.addAll(worksUrl);
 		for(String worksPage : worksPages){
 			String sourceCodeHtml = getHtml(worksPage);
 			worksUrl = regHtmlForMemWorksUrl(sourceCodeHtml);
 			allWorksUrl.addAll(worksUrl);
 		}
-		int worksCounts = allWorksUrl.size();
+		//获取作品总数
+		String worksCounts =regHtmlForWorksNum(worksPageHtml);
 		System.out.println("==========================================================");
 		System.out.println(pixivName + "(id=" + id + ")的成员共有" + worksCounts + "幅作品！");
-		System.out.println("所有作品的小图地址是：");
+		System.out.println("获取到的作品数量有" + allWorksUrl.size() + "幅作品!");
+		/*System.out.println("所有作品的小图地址是：");
 		for(String small : allWorksUrl){
 			System.out.println(small);
-		}
+		}*/
 		
 		return allWorksUrl;
 	}
@@ -261,15 +263,27 @@ public class DownloadPageSourceCode {
 	 * 根据成员的作品集页面的源码，找出该成员的作品总共有几页，并把每页的地址塞到List中返回;
 	 * 经分析页面源码，发现页数在class="pager-container"的DIV中
 	 * 
+	 * 上面的获取作品总共页数方法有误，一页只能显示4*5=20张作品，而第一页中，最多只能显示9页，
+	 * 也即如果某成员的作品数量超过了180张的话，第9页后面的就获取不到了；
+	 * 
+	 * 可以采用如下方法来获取正确的页数：先获取该成员准确的作品总数，再除以每页所能显示的作品数量（20）
+	 * 所得便是作品的总页数；
+	 * 
+	 * 作品总数在如下的标签中
+	 * <span class="count-badge">979件</span>
+	 * 
+	 * 而每页作品的链接地址都是如下所示的
+	 * http://www.pixiv.net/member_illust.php?id=440400&type=all&p=4
+	 * 
 	 * @param html
 	 * @return
 	 */
-	private List<String> regHtmlForWorksPages(String html){
-		System.out.println("===============匹配出的页数DIV为===================");
+	private List<String> regHtmlForWorksPages(String id, String html){
+		//System.out.println("===============匹配出的页数DIV为===================");
 		ArrayList<String> worksPagesUrl = new ArrayList<>();
-		String worksPagePrefix = "http://www.pixiv.net/member_illust.php";
 		
-		String reg = "class=\"pager\\-container\"[\\w\\s\\?\\.\\-/=\"<>;&]+class=\"next\"";		 //[\\w/<>;\"=\\s\\?&]+class=\"next\"
+		
+		/*String reg = "class=\"pager\\-container\"[\\w\\s\\?\\.\\-/=\"<>;&]+class=\"next\"";		 //[\\w/<>;\"=\\s\\?&]+class=\"next\"
 		Pattern pattern = Pattern.compile(reg);
 		Matcher matcher = pattern.matcher(html);
 		if(matcher.find()){
@@ -288,9 +302,61 @@ public class DownloadPageSourceCode {
 				System.out.println(pageUrl);
 				worksPagesUrl.add(pageUrl);
 			}
+		}*/
+		
+		//先获取作品总数
+		//<span class="count-badge">979件</span>
+		String countBadge = "0";
+		
+		countBadge = regHtmlForWorksNum(html);
+		
+		int worksCount = Integer.parseInt(countBadge);
+		int pageCount = 1;
+		if(worksCount > 20){
+			pageCount = worksCount/20 + 1;
+		}else{
+			pageCount = 1;
+		}
+		System.out.println("============================获取到的作品页面==============================");
+		System.out.println("总共有" + pageCount + "页\n链接如下：");
+		//http://www.pixiv.net/member_illust.php?id=440400&type=all&p=4
+		//拼凑链接地址
+		String worksPagePrefix = "http://www.pixiv.net/member_illust.php?id=";
+		String worksPageSuffix = "&type=all&p=";
+		for(int i = 1; i <= pageCount; i++){
+			String pageUrl = worksPagePrefix + id + worksPageSuffix + i;
+			System.out.println(pageUrl);
+			worksPagesUrl.add(pageUrl);
 		}
 		
+		
 		return worksPagesUrl;
+	}
+	
+	/**
+	 * 获取成员的作品总数
+	 * 
+	 * 作品总数在如下标签中：
+	 * <span class="count-badge">979件</span>
+	 * 注意上面数字后面还有一个字”件“
+	 * 
+	 * @param html
+	 * @return
+	 */
+	private String regHtmlForWorksNum(String html){
+		String num = "0";
+		
+		//先获取作品总数
+		//<span class="count-badge">979件</span>
+		String reg = "class=\"count\\-badge\">\\d+.<";
+		Pattern pattern = Pattern.compile(reg);
+		Matcher matcher = pattern.matcher(html);
+		if(matcher.find()){
+			String tmp = matcher.group(0);
+			num = tmp.substring(tmp.lastIndexOf(">")+1, tmp.length()-2);
+		}
+		
+		return num;
 	}
 	
 	/**
@@ -512,17 +578,27 @@ public class DownloadPageSourceCode {
 	 * 从关注者第一个页面获取其它页面的链接，以便后面获取所有的关注者用户信息
 	 * 其中，其它页面的链接在如下的标签中
 	 * <a href="bookmark.php?type=user&amp;id=27517&amp;rest=show&amp;p=2">2</a>
+	 * 
+	 * 上面的获取所有关注者用户的方式错误，在关注者超过480个时，由于第一个页面最多只能显示10页，
+	 * 每页中有3*16=48个关注者，第10页之后的链接并没有显示出来，所以这里并不能通过直接正则匹配
+	 * 来获取所有的页面链接；
+	 * 
+	 * 这里应该采用先获取该成员所关注的用户的总数，除以每页送显示的关注用户数（48），从而获取总的
+	 * 页数。
+	 * 关注用户总数在如下的标签中
+	 * <span class="count-badge">2502</span>
+	 * 
 	 * @param html
 	 * @return
 	 */
-	private List<String> regFollowersPageForPagesLink(String html){
+	private List<String> regFollowersPageForPagesLink(String id, String html){
 		List<String> links = new ArrayList<>();
 		
-		String reg = "bookmark\\.php\\?[\\w=;&]+\">\\d</a>";
+		
+		/*String reg = "bookmark\\.php\\?[\\w=;&]+\">\\d</a>";
 		
 		Pattern pattern = Pattern.compile(reg);
 		Matcher matcher = pattern.matcher(html);
-		System.out.println("====================该成员关注的用户的其它页面的链接=======================");
 		while(matcher.find()){
 			//获取到 bookmark.php?type=user&amp;id=27517&amp;rest=show&amp;p=6">
 			String tmp = matcher.group(0);
@@ -534,11 +610,45 @@ public class DownloadPageSourceCode {
 			String link = prefix + tmp;
 			
 			links.add(link);
+		}*/
+		
+		//先获取关注的用户总数
+		//<span class="count-badge">2502</span>
+		String reg = "class=\"count\\-badge\">\\d+<";
+		Pattern pattern = Pattern.compile(reg);
+		Matcher matcher = pattern.matcher(html);
+		String countBadge = "1";									//默认只有1页
+		if(matcher.find()){
+			String tmp = matcher.group(0);
+			countBadge = tmp.substring(tmp.lastIndexOf(">")+1, tmp.length()-1);
 		}
 		
-		for(String l : links){
-			System.out.println(l);
+		int pageCount = 1;
+		int counts = Integer.parseInt(countBadge) ;
+		if(counts > 48){
+			pageCount = counts/48 + 1;
+		}else{
+			pageCount = 1;
 		}
+		
+		System.out.println("====================该成员关注页面的链接有======================");
+		System.out.println("该用户关注的用户总共分为了" + pageCount + "页");
+		
+		//关注的用户的页数的链接如下所以
+		//http://www.pixiv.net/bookmark.php?type=user&id=394141&rest=show&p=3
+		//拼凑每页的链接
+		String prefixLink = "http://www.pixiv.net/bookmark.php?type=user&id=";
+		String suffixLink = "&rest=show&p=";
+		
+		for(int i = 1; i <= pageCount; i++){
+			String link = prefixLink + id + suffixLink + i;
+			System.out.println(link);
+			links.add(link);
+		}
+	
+		/*for(String l : links){
+			System.out.println(l);
+		}*/
 		return links;
 	}
 	
@@ -572,12 +682,12 @@ public class DownloadPageSourceCode {
 		//获取关注的用户数
 		String followersCounts = regFollowersPageForFollowersCounts(firstPage);
 		
-		//获取其它页的链接
-		List<String> moreLinks =  regFollowersPageForPagesLink(firstPage);
-		List<String> pagesLinks = new ArrayList<>();
+		//获取所有页的链接
+		List<String> pagesLinks =  regFollowersPageForPagesLink(id, firstPage);
+		/*List<String> pagesLinks = new ArrayList<>();
 		//该成员所关注的用户共有多少页
 		pagesLinks.add(followersUrl);
-		pagesLinks.addAll(moreLinks);
+		pagesLinks.addAll(moreLinks);*/
 		
 		for(String pageUrl : pagesLinks){
 			String html = getHtml(pageUrl);
@@ -591,24 +701,16 @@ public class DownloadPageSourceCode {
 			//获取改业中所列出来的关注用户的链接地址
 			followersLink.putAll(regFollowersPageForFollowersLink(html));
 		}
-		/*
-		//获取该页中所列出来的关注的用户的id
-		List<String> firstPageFollowersID = regFollowersPageForFollowersId(firstPage);
+
 		
-		//获取该页中所列出来的关注的用户名称
-		List<String> firstPageFollowersName = regFollowersPageForFollowersName(firstPage);
-		
-		//获取改业中所列出来的关注用户的链接地址
-		List<String> firstPageFollowersLink = regFollowersPageForFollowersLink(firstPage);
-		*/
-		System.out.println("==============================所有关注用户的ID======================");
+		/*System.out.println("==============================所有关注用户的ID======================");
 		for(String tmp : followersID){
 			System.out.println(tmp);
 		}
 		System.out.println("==============================所有关注用户的名称======================");
 		for(Map.Entry tmp : followersName.entrySet()){
 			System.out.println(tmp.getKey() + "==" + tmp.getValue());
-		}
+		}*/
 		System.out.println("==============================所有关注用户的链接地址====================");
 		for(Map.Entry tmp : followersLink.entrySet()){
 			System.out.println(tmp.getKey() + "==" + tmp.getValue());
@@ -840,12 +942,15 @@ public class DownloadPageSourceCode {
 		//String id="27517";				//藤原
 		//String id = "490219";			//Hiten
 		//String id	= "152142";			//すいひ
-		String id = "512849";			//刃天
+		//String id = "512849";			//刃天
 		//String id = "1584611";			//卑しい人间
 		//String id = "548883";			//タロ
-		//String id = "4754550";
+		String id = "394141";
 		DownloadPageSourceCode demo = new DownloadPageSourceCode();
-		demo.getFavoriteWorksUrlByMemId(id);
+		//demo.getFavoriteWorksUrlByMemId(id);
+		//List<String> worksUrls = demo.getWorksUrlByMemId(id);
+		Followers followers = demo.getFollowersById(id);
+		
 		
 		
 		
