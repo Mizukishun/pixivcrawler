@@ -2,7 +2,9 @@ package crawler.customize;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -138,7 +140,14 @@ public class DownloadByDifferentCond {
 		String url = "http://www.pixiv.net/ranking_area.php?type=detail&no=" + regionCode;
 		
 		DownloadHtml download = new DownloadHtml();
-		Map<String, String> picAddrs = RegHtml.regRankingPageForPicAddr(download.getHtml(url));
+		Map<String, String> picAddrs = new HashMap<>();
+		try {
+			picAddrs = RegHtml.regRankingPageForPicAddr(download.getHtml(url));
+		} catch (IOException e) {
+			System.out.println("==========下载网页源码出错,需要重试===========");
+			e.printStackTrace();
+			
+		}
 		DownloadOriginalPic down = new DownloadOriginalPic();
 		
 		SimpleDateFormat format = new SimpleDateFormat("yyyyMMdd");
@@ -159,6 +168,58 @@ public class DownloadByDifferentCond {
 			}
 		}
 		printTime(startTime);
+		
+	}
+	
+	/**
+	 * 下载2017年3月每天的当日最受男性欢迎的50张图片<br>
+	 * 地址如下：<br>
+	 * http://www.pixiv.net/ranking.php?mode=male&date=20170409
+	 */
+	public void downloadRankingByDay(){
+		long startTime = System.currentTimeMillis();
+		
+		DownloadOriginalPic download = new DownloadOriginalPic();
+		DownloadHtml downloadHtml = new DownloadHtml();
+		String folder = "201703DayRanking/";
+		String urlSuffix;
+		for(int i = 1; i <= 31; i++){
+			urlSuffix = String.valueOf(i);
+			if(i<10){
+				urlSuffix = "0" + urlSuffix;
+			}
+			String urlPre = "http://www.pixiv.net/ranking.php?mode=male&date=201703";
+			String url = urlPre + urlSuffix;
+			try{
+				Map<String, String> picAddrs = RegHtml.regRankingPageForPicAddr(downloadHtml.getHtml(url));
+				
+				for(Map.Entry entry : picAddrs.entrySet()){
+					String authorId = (String)entry.getValue();
+					String filename = folder + authorId + "N";
+					String picUrl = (String)entry.getKey();
+					try{
+						download.download(picUrl, filename);
+					}catch(IOException e){
+						System.out.println("===========下载图片出错===========");
+						System.out.println("出错图片地址：" + picUrl);
+						e.printStackTrace();
+						continue;
+					}
+					
+				}
+			}catch(IOException ex){
+				System.out.println("======下载网页源码出错，忽略此日的数据====");
+				System.out.println("这天为2017年3月的" + i + "日");
+				ex.printStackTrace();
+				continue;
+			}
+			
+			
+			
+		}
+		
+		
+		
 		
 	}
 	

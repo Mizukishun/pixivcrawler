@@ -55,7 +55,6 @@ public class RegHtml {
 		}
 		
 		System.out.println("===========国际排行榜获取到的小图地址有===========");
-		System.out.println(result.size());
 		for(Map.Entry entry : result.entrySet()){
 			System.out.println(entry.getValue() + "==" + entry.getKey());
 		}

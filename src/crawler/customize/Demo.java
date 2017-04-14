@@ -18,6 +18,9 @@ public class Demo {
 		//demo.downloadAllFavoritePicByMemId(id);
 		
 		//下载今日国际排行榜的前100名的作品
-		demo.downloadInternationalRankingPicForToday(6);
+		//demo.downloadInternationalRankingPicForToday(6);
+		
+		//下载2017年3月的所有的今日数据，也即30天*50张
+		demo.downloadRankingByDay();
 	}
 }
