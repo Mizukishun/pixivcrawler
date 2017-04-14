@@ -8,6 +8,8 @@ import java.util.Map;
 
 import crawler.core.DownloadOriginalPic;
 import crawler.core.DownloadPageSourceCode;
+import crawler.utils.DownloadHtml;
+import crawler.utils.RegHtml;
 import crawler.vo.Followers;
 
 public class DownloadByDifferentCond {
@@ -30,7 +32,7 @@ public class DownloadByDifferentCond {
 		
 		DownloadOriginalPic download = new DownloadOriginalPic();
 		
-		String filename =  authorName + "/" + id + "N";
+		String filename =  id + "Works/" + id + "N";
 		
 		for(String url : allUrls){
 			try{
@@ -58,7 +60,7 @@ public class DownloadByDifferentCond {
 		/**
 		 * 该成员所关注的所有的用户的所有作品都放在id+“followers"的文件夹下，图片命名统一用各用户各自的id+”N"
 		 */
-		String folder = id + "followers/";
+		String folder = id + "Followers/";
 		
 		List<String> followersId = followers.getFollowers_id();
 		
@@ -99,7 +101,7 @@ public class DownloadByDifferentCond {
 		DownloadPageSourceCode dpsc = new DownloadPageSourceCode();
 		DownloadOriginalPic download = new DownloadOriginalPic();
 		
-		String folder = id + "favorites/";
+		String folder = id + "Favorites/";
 		
 		Map<String, String> linkAndId = dpsc.getFavoriteWorksUrlByMemId(id);
 		for(Map.Entry entry : linkAndId.entrySet()){
@@ -116,6 +118,48 @@ public class DownloadByDifferentCond {
 		}
 		
 		printTime(startTime);
+	}
+	
+	/**
+	 * 把今日国际排行榜上的100张图片下载下来<br>
+	 * http://www.pixiv.net/ranking_area.php?type=detail&no=6<br>
+	 * 如果把最后的no=6修改成0-5的数字，则分别表示日本6个地区的当日排行榜，但是这些区域的只有前50的作品<br>
+	 * 0对应北海道/东北<br>
+	 * 1对应关东<br>
+	 * 2对应中部<br>
+	 * 3对应近畿<br>
+	 * 4对应中国/四国<br>
+	 * 5对应九州/冲绳<br>
+	 * 6对应国际<br>
+	 */
+	public void downloadInternationalRankingPicForToday(int regionCode){
+		long startTime = System.currentTimeMillis();
+		
+		String url = "http://www.pixiv.net/ranking_area.php?type=detail&no=" + regionCode;
+		
+		DownloadHtml download = new DownloadHtml();
+		Map<String, String> picAddrs = RegHtml.regRankingPageForPicAddr(download.getHtml(url));
+		DownloadOriginalPic down = new DownloadOriginalPic();
+		
+		SimpleDateFormat format = new SimpleDateFormat("yyyyMMdd");
+		String today = format.format(new Date());
+		String folder = today + "Ranking/";
+		
+		for(Map.Entry entry : picAddrs.entrySet()){
+			String authorId = (String)entry.getValue();
+			String filename = folder + authorId + "N";
+			String picUrl = (String)entry.getKey();
+			try{
+				down.download(picUrl, filename);
+			}catch(IOException ex){
+				System.out.println("========下载图片是出错了=======");
+				System.out.println("图片地址：" + picUrl);
+				ex.printStackTrace();
+				continue;
+			}
+		}
+		printTime(startTime);
+		
 	}
 	
 	

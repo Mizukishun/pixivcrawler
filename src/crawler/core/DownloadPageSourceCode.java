@@ -80,6 +80,7 @@ public class DownloadPageSourceCode {
 			//conn.addRequestProperty("mode", "medium");
 			//conn.addRequestProperty("illust_id", "61367958");
 			conn.setConnectTimeout(30000);
+			conn.setReadTimeout(30000);
 			conn.connect();
 			
 			String contentType = conn.getContentType();
