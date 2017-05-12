@@ -31,7 +31,7 @@ public class DownloadOriginalPic {
 	
 	private String picSuffix = ".jpg";			//包括点号"."，也即".jpg"这样的，默认是.jpg
 	
-	String baseDir = "F:/crawlerTest/pixiv/pixiv/";		//将原始图片保存在这个路径下
+	String baseDir = "F:/crawlerTest/pixiv/phase2/";		//将原始图片保存在这个路径下
 	
 	//用于保存日志，配置文件为log4j2.xml
 	private Logger logger = LogManager.getLogger("mylog");

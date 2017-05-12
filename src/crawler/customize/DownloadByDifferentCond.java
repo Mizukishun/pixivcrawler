@@ -21,13 +21,16 @@ import crawler.vo.Followers;
 
 public class DownloadByDifferentCond {
 	
+	//添加日志支持
+	private Logger logger = LogManager.getLogger("mylog");
+	
 	/**
 	 * 只下载该id成员的所有作品
 	 * 
 	 * @param id
 	 * @throws Exception 
 	 */
-	public void downloadAllWorksByMemId(String id) throws Exception{
+	public void downloadAllWorksByMemId(String id){
 		Logger logger = LogManager.getLogger("mylog");
 		
 		
@@ -100,14 +103,25 @@ public class DownloadByDifferentCond {
 		}*/
 		
 		for(String followerId : followersId){
+			logger.info("================开始下载收藏用户id为 " + followerId + "的图片===============");
+			
+			
 			List<String> followerAllUrl = demo.getWorksUrlByMemId(followerId);
 			String filename = folder + followerId + "N";
 			for(String url : followerAllUrl){
 				try{
 					download.download(url, filename);
+				}catch(IndexOutOfBoundsException ex){
+					logger.error("===========图片下载出错===========");
+					logger.error("出错的图片地址为" + url);
+					logger.error(ex.getMessage());
+					ex.printStackTrace();
+					continue;
 				}catch(IOException e){
-					System.out.println("=============================出错了===================");
-					//System.out.println(e.getMessage());
+					//System.out.println("=============================出错了===================");
+					logger.error("===========图片下载出错===========");
+					logger.error("出错的图片地址为" + url);
+					logger.error(e.getMessage());
 					e.printStackTrace();
 					continue;
 				}
@@ -121,8 +135,8 @@ public class DownloadByDifferentCond {
 	}
 	
 	/**
-	 * 下载该成员所收藏的所有图片
-	 * 图片存放在以该成员id+"favorites"命名的文件夹中，图片以用户id+"N"统一命名
+	 * 下载该成员所收藏的所有图片<br>
+	 * 图片存放在以该成员id+"favorites"命名的文件夹中，图片以用户id+"N"统一命名<br>
 	 * @param id
 	 * @throws Exception 
 	 */
@@ -140,9 +154,18 @@ public class DownloadByDifferentCond {
 			String url = (String)entry.getKey();
 			try{
 				download.download(url, filename);
+			}catch(IndexOutOfBoundsException e){
+				logger.error("===========图片下载出错===========");
+				logger.error("出错的图片地址为" + url);
+				logger.error(e.getMessage());
+				e.printStackTrace();
+				continue;
 			}catch(IOException ex){
-				System.out.println("=========================出错了==========================");
-				System.out.println("出错的图片地址为：" + url);
+				//System.out.println("=========================出错了==========================");
+				//System.out.println("出错的图片地址为：" + url);
+				logger.error("===========图片下载出错===========");
+				logger.error("出错的图片地址为" + url);
+				logger.error(ex.getMessage());
 				ex.printStackTrace();
 				continue;
 			}
@@ -190,9 +213,18 @@ public class DownloadByDifferentCond {
 			String picUrl = (String)entry.getKey();
 			try{
 				down.download(picUrl, filename);
+			}catch(IndexOutOfBoundsException e){
+				logger.error("===========图片下载出错===========");
+				logger.error("出错的图片地址为" + picUrl);
+				logger.error(e.getMessage());
+				e.printStackTrace();
+				continue;
 			}catch(IOException ex){
-				System.out.println("========下载图片是出错了=======");
-				System.out.println("图片地址：" + picUrl);
+				//System.out.println("========下载图片是出错了=======");
+				//System.out.println("图片地址：" + picUrl);
+				logger.error("===========图片下载出错===========");
+				logger.error("出错的图片地址为" + picUrl);
+				logger.error(ex.getMessage());
 				ex.printStackTrace();
 				continue;
 			}
@@ -202,7 +234,7 @@ public class DownloadByDifferentCond {
 	}
 	
 	/**
-	 * 下载2017年3月每天的当日最受男性欢迎的50张图片<br>
+	 * 下载2016年某月每天的当日最受男性欢迎的50张图片<br>
 	 * 地址如下：<br>
 	 * https://www.pixiv.net/ranking.php?mode=male&date=20170409
 	 * @throws Exception 
@@ -230,9 +262,18 @@ public class DownloadByDifferentCond {
 					String picUrl = (String)entry.getKey();
 					try{
 						download.download(picUrl, filename);
+					}catch(IndexOutOfBoundsException ex){
+						logger.error("===========图片下载出错===========");
+						logger.error("出错的图片地址为" + url);
+						logger.error(ex.getMessage());
+						ex.printStackTrace();
+						continue;
 					}catch(IOException e){
 						System.out.println("===========下载图片出错===========");
 						System.out.println("出错图片地址：" + picUrl);
+						logger.error("===========图片下载出错===========");
+						logger.error("出错的图片地址为" + picUrl);
+						logger.error(e.getMessage());
 						e.printStackTrace();
 						continue;
 					}
@@ -257,9 +298,9 @@ public class DownloadByDifferentCond {
 	 */
 	public void downloadRecommendPicByPicId(String id) throws Exception{
 		
-		Logger logger = LogManager.getLogger("mylog");
+		//Logger logger = LogManager.getLogger("mylog");
 		
-		long startTime = System.currentTimeMillis();
+		//long startTime = System.currentTimeMillis();
 		GetRecommend recommender = new GetRecommend();
 		String folder = id + "Recommend/";
 		
@@ -304,29 +345,62 @@ public class DownloadByDifferentCond {
 		
 	}
 	
-	//下面的打印时间函数统一放到TimeUtil.java中
 	/**
-	 * 打印所用的时间
+	 * 根据作者id获取其所有作品的图片id，再根据这些图片id获取P站推荐的所有图片<br>
+	 * <p>
+	 * 因为每个图片id能够获取到500（待解决Bug）张推荐图片，所以获取的<br>
+	 * 图片总数 = 作者作品数*500<br>
+	 * 将图片统一保存到"作者id+AuthorIDRec/ + 图片作者id+N + 图片id"<br>
+	 * 后面在DownloadOriginalPic.java中会在最后添加"图片id+D"，以便处理重复问题<br>
 	 * 
-	 * @param startTime	程序开始的时间
+	 * @param id
 	 */
-	/*private void printTime(long startTime){
+	public void downloadRecommendPicByAuthorId(String id){
+		DownloadOriginalPic download = new DownloadOriginalPic();
+		DownloadPageSourceCode dpsc = new DownloadPageSourceCode();
+		//首先获取指定成员的所有作品url
+		List<String> allWorksUrl = dpsc.getWorksUrlByMemId(id);
 		
-		long endTime = System.currentTimeMillis();
-		Date start = new Date(startTime);
-		Date end = new Date(endTime);
-		SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-		String startStr = format.format(start);
-		String endStr = format.format(end);
-		long difTime = endTime - startTime;
-		int difDay = (int) (difTime/(1000*60*60*24));
-		int difHour = (int) ((difTime-difDay*1000*60*60*24)/(1000*60*60));
-		int difMinute = (int)((difTime-((difDay*24+difHour)*1000*60*60))/(1000*60));
-		int difSecond = (int)((difTime-(difDay*24*60+difHour*60+difMinute)*1000*60)/1000);
-		System.out.println("============================图片下载结束=======================");
-		System.out.println("开始于：" + startStr);
-		System.out.println("结束于：" + endStr);
-		System.out.println("共用了：" + difDay + "天" + difHour + "小时" + difMinute + "分钟" + difSecond + "秒");
-	}*/
+		for(String worksUrl : allWorksUrl){
+			//再获取其中一张图片的id,从而根据该图片id获取推荐的500张图片
+			//获取图片id
+			String worksPicId = RegHtml.regPicUrlForPicId(worksUrl);
+			logger.info("=========开始下载id为" + worksPicId + "的推荐图片=======");
+			
+			//获取推荐的500张图片的id
+			GetRecommend gr = new GetRecommend();
+			String[] recIds = gr.getRecommendIdsFromBookmark(worksPicId);
+			//组装获取500张图片的具体小图地址
+			Map<String, String> recPicsUrl = gr.getRecommendPicAddrs(recIds);
+			for(Map.Entry entry : recPicsUrl.entrySet()){
+				String picAuthorId = (String)entry.getValue();
+				String picUrl = (String)entry.getKey();
+				String picId = RegHtml.regPicUrlForPicId(picUrl);
+				String filename = id + "AuthorIdRec/" + picAuthorId + "N";
+				
+				try{
+					download.download(picUrl, filename);
+				}catch(IndexOutOfBoundsException e){
+					logger.error("===========图片下载出错===========");
+					logger.error("出错的图片地址为 " + picUrl);
+					logger.error(e.getMessage());
+					e.printStackTrace();
+					continue;
+				}catch(IOException ex){
+					logger.error("===========图片下载出错===========");
+					logger.error("出错的图片地址为 " + picUrl);
+					logger.error(ex.getMessage());
+					ex.printStackTrace();
+					continue;
+				}
+				
+				
+			}
+			
+		}
+		
+		
+		
+	}
 
 }

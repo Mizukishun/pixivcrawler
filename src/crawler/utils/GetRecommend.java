@@ -54,10 +54,13 @@ public class GetRecommend {
 	 * <p>
 	 * 请求的地址如下所示：<br>
 	 * <b>https://www.pixiv.net/rpc/illust_list.php?illust_ids=51176125%2C49258389%2C49908880%2C51645544%2C49810303%2C49934602%2C45629088%2C49908488%2C56884511%2C50759967%2C49831074%2C49911367%2C50936724%2C51145109%2C50215790&verbosity=&exclude_muted_illusts=1</b><br>
-	 * 这里一次请求了15个图片的地址，所以在这里也一次只请求15个图片的地址
+	 * 这里一次请求了15个图片的地址，所以在这里也一次只请求15个图片的地址<br>
+	 * <p>
+	 * 注意：返回的是Map< picUrl, picAuthorId>
+	 * 
 	 * 
 	 * @param picIds
-	 * @return
+	 * @return 
 	 */
 	public Map<String, String> getRecommendPicAddrs(String[] picIds){
 		Map<String, String> picAddrs = new HashMap<>();

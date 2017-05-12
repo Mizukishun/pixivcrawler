@@ -15,22 +15,15 @@ public class Demo {
 		
 		DownloadByDifferentCond demo = new DownloadByDifferentCond();
 		
-		String id = "7616522";
+		//String id = "2174196";
+		String id = args[0];
 		//String id = "5206721";
 		
 		//只下载该成员的所有作品
-		try {
-			logger.trace("==============================下载指定成员的所有作品============================");
-			logger.trace("开始下载成员id为" + id + "的所有图片");
-			demo.downloadAllWorksByMemId(id);
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			logger.error("=====================下载指定成员的所有作品出错=================================");
-			logger.error("该成员的id为：" + id);
-			logger.error("出错信息为：");
-			logger.error(e.getMessage());
-			e.printStackTrace();
-		}
+		/*logger.trace("==============================下载指定成员的所有作品============================");
+		logger.trace("开始下载成员id为" + id + "的所有图片");
+		demo.downloadAllWorksByMemId(id);*/
+	
 		
 		//下载该成员所收藏的所有图片
 		//demo.downloadAllFavoritePicByMemId(id);
@@ -58,6 +51,9 @@ public class Demo {
 				continue;
 			}
 		}*/
+		
+		//根据成员id找出其所有作品id,再根据作品id下载所有推荐的图片
+		demo.downloadRecommendPicByAuthorId(id);
 		
 		TimeUtil.printTime(startTime);
 	}

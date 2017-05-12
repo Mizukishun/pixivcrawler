@@ -4,13 +4,16 @@
 		<Console name="Console" target="SYSTEM_OUT" >
 			<PatternLayout pattern="%d{HH:mm:ss} [%t] %-5level %logger{36} -%msg%n" />
 		</Console>
-		<File name="myFile" filename="F:/crawlerTest/log/pixivLog.log">
+		<File name="myFile" filename="F:/crawlerTest/log/pixivLog3.log">
 			<PatternLayout pattern="%d{HH:mm::ss} [%t] %-5level %logger{36} -%msg%n" />
 		</File>
 	</Appenders>
 	<Loggers>
 		<Logger name="mylog" level="trace" additivity="true">
 			<AppenderRef ref="myFile" />
+		</Logger>
+		<Logger name="consoleTest" level="warn" additivity="false">
+			<AppenderRef ref="Console" />
 		</Logger>
 		<Root level="warn">
 			<AppenderRef ref="Console" />
