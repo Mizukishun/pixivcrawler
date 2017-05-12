@@ -1,5 +1,6 @@
 package crawler.utils;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -62,6 +63,81 @@ public class RegHtml {
 		System.out.println(result.size());
 		
 		return result;
+	}
+	
+	
+	/**
+	 * 请求P站获取推荐的500张图片的id，获取的源码格式如下：<br>
+	 * {"recommendations":[51176125,49258389,49908880,51645544,...,47881258,56457301,50007025]}<br>
+	 * 其中图片id有500个因为这里的是json格式，所以可以不用正则表达式，直接字符串匹配（或者用json的相关工具类）<br>
+	 * 
+	 * @param html
+	 * @return
+	 */
+	public static String[] regRecommenderPageForIds(String html) throws IndexOutOfBoundsException {
+		String[] ids;
+		String idsStr = html.substring(html.indexOf("[") + 1, html.lastIndexOf("]"));
+		ids = idsStr.split(",");
+		return ids;
+	}
+	
+	
+	/**
+	 * 在收藏推荐页面，使用多个图片id作为请求参数，获取该多个图片相应的小图地址<br>
+	 * <p>
+	 * 请求得到的源码格式如下：<br>
+	 * "url":"https:\/\/i.pximg.net\/c\/150x150\/img-master\/img\/2015\/08\/02\/14\/00\/26\/51739759_p0_master1200.jpg","user_name":"\u54b2\u826f\u3086\u304d","illust_id":"51739759","illust_title":"Magician girl","illust_user_id":"1661253","illust_restrict"<br>
+	 * 所以可以先用正则表达式匹配出上面的字符串，再通过字符串的操作来获取图片的url
+	 * 
+	 * @param html
+	 * @return
+	 */
+	public static Map<String, String> regTagHtmlForIdAddrs(String html){
+		Map<String, String> idAddrs = new HashMap<>();
+		
+		//System.out.println("=======================正则匹配出来的地址有===============");
+		String reg = "url\":\"http[\\w\\W&&[^\"]]+\",\"user_name\":\"[\\w\\W&&[^\"]]+\",\"illust_id\":\"[\\d]+\",\"illust_title\":\"[\\w\\W&&[^\"]]+\",\"illust_user_id\":\"[\\d]+\"";
+		Pattern pattern = Pattern.compile(reg);
+		Matcher matcher = pattern.matcher(html);
+		while(matcher.find()){
+			//得到如下所示的字符串
+			//url":"https:\/\/i.pximg.net\/c\/150x150\/img-master\/img\/2015\/04\/19\/16\/29\/41\/49920423_p0_master1200.jpg","user_name":"\u9190\u5473\u5c51","illust_id":"49920423","illust_title":"\u771f\u59eb\u3061\u3083\u3093\u30aa\u30e1\u30b9","illust_user_id":"1815189"
+			String uTn = matcher.group(0);
+			String url = uTn.substring(uTn.indexOf("http"), uTn.indexOf("1200")+8);
+			url = url.replaceAll("\\\\", "");		//替换掉url中的斜杠\
+			String authorId = uTn.substring(uTn.lastIndexOf(":")+2, uTn.length()-1);
+			
+			//System.out.println(uTn + "\n authorId=" + authorId + "\n url=" + url);
+			idAddrs.put(url, authorId);
+		}
+		//System.out.println("==================这一次匹配的数量有===================");
+		//System.out.println(idAddrs.size());
+		
+		return idAddrs;
+	}
+	
+	/**
+	 * 根据图片的小图地址获取该图片的id<br>
+	 * 图片的地址有如下格式：<br>
+	 * http://i3.pixiv.net/c/600x600/img-master/img/2017/01/29/16/20/56/61172838_p0_master1200.jpg<br>
+	 * http://i3.pixiv.net/img-original/img/2017/01/29/16/20/56/61172838_p0.jpg
+	 * 
+	 * 
+	 * @param picUrl 图片的小图 地址
+	 * @return 图片对应的ID
+	 */
+	public static String regPicUrlForPicId(String picUrl){
+		String picId = "";
+		//因为格式固定且相对简单，所以直接使用String的函数进行图片ID的提取
+		picId = picUrl.substring(picUrl.lastIndexOf("/")+1, picUrl.indexOf("_p"));
+		/*String reg  = "";
+		Pattern pattern = Pattern.compile(reg);
+		Matcher matcher = pattern.matcher(picUrl);
+		if(matcher.find()){
+			picId = matcher.group(0);
+		}*/
+		
+		return picId;
 	}
 	
 }

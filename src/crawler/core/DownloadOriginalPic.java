@@ -12,6 +12,11 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import crawler.utils.RegHtml;
+
 /**
  * 直接复制浏览器中的那些请求数据来对页面进行请求，看这里是否能够请求成功
  * 
@@ -27,6 +32,9 @@ public class DownloadOriginalPic {
 	private String picSuffix = ".jpg";			//包括点号"."，也即".jpg"这样的，默认是.jpg
 	
 	String baseDir = "F:/crawlerTest/pixiv/pixiv/";		//将原始图片保存在这个路径下
+	
+	//用于保存日志，配置文件为log4j2.xml
+	private Logger logger = LogManager.getLogger("mylog");
 	
 	public DownloadOriginalPic(){
 		
@@ -46,11 +54,22 @@ public class DownloadOriginalPic {
 	 * 
 	 * @param urlStr			网页上小图的地址
 	 * @param filename		图片下载保存到磁盘上时的文件名
+	 * @throws Exception 
 	 */
-	private void getPicture(String srcUrl, String filename) throws IOException{
+	private void getPicture(String srcUrl, String filename) throws IOException, IndexOutOfBoundsException{
+		//提取图片的ID，将设置为图片保存的文件名后面
+		String picId = RegHtml.regPicUrlForPicId(srcUrl);
+		filename += picId + "D";
+		
 		//注意，下面两个方式的顺序不能倒，不然图片后缀名会用默认的“.jpg”
 		changeToOriginalUrl(srcUrl);
 		newFileForPic(filename);
+		
+		//System.out.println("=======================图片地址====================");
+		//System.out.println(originalUrl);
+		//logger.info("==================图片原始地址=====================");
+		//logger.info(originalUrl);
+		
 		
 		//try {
 			URL url = new URL(originalUrl);
@@ -64,9 +83,13 @@ public class DownloadOriginalPic {
 			conn.addRequestProperty("Cookie", "p_ab_id=1; p_ab_id_2=5; PHPSESSID=22834429_dd1ee52a1c5fe902f87592004b3beb52; device_token=a5e1f2587fe13ad2ba0974ea10b8c4ae; module_orders_mypage=%5B%7B%22name%22%3A%22recommended_illusts%22%2C%22visible%22%3Atrue%7D%2C%7B%22name%22%3A%22everyone_new_illusts%22%2C%22visible%22%3Atrue%7D%2C%7B%22name%22%3A%22following_new_illusts%22%2C%22visible%22%3Atrue%7D%2C%7B%22name%22%3A%22mypixiv_new_illusts%22%2C%22visible%22%3Atrue%7D%2C%7B%22name%22%3A%22fanbox%22%2C%22visible%22%3Atrue%7D%2C%7B%22name%22%3A%22featured_tags%22%2C%22visible%22%3Atrue%7D%2C%7B%22name%22%3A%22contests%22%2C%22visible%22%3Atrue%7D%2C%7B%22name%22%3A%22sensei_courses%22%2C%22visible%22%3Atrue%7D%2C%7B%22name%22%3A%22spotlight%22%2C%22visible%22%3Atrue%7D%2C%7B%22name%22%3A%22booth_follow_items%22%2C%22visible%22%3Atrue%7D%5D; __utma=235335808.300421734.1490616508.1490616508.1490616508.1; __utmc=235335808; __utmz=235335808.1490616508.1.1.utmcsr=(direct)|utmccn=(direct)|utmcmd=(none); __utmv=235335808.|2=login%20ever=yes=1^3=plan=normal=1^5=gender=female=1^6=user_id=22834429=1^9=p_ab_id=1=1^10=p_ab_id_2=5=1^12=fanbox_subscribe_button=orange=1^13=fanbox_fixed_otodoke_naiyou=no=1^14=hide_upload_form=no=1^15=machine_translate_test=no=1; _ga=GA1.2.300421734.1490616508");
 			conn.addRequestProperty("DNT", "1");
 			conn.addRequestProperty("Host", "i3.pixiv.net");
-			conn.addRequestProperty("Referer", "http://www.pixiv.net/member_illust.php?mode=medium&illust_id=6193441");
+			conn.addRequestProperty("Referer", "https://www.pixiv.net/member_illust.php?mode=medium&illust_id=6193441");
 			conn.addRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36");
 			
+			conn.setConnectTimeout(60000);
+			conn.setReadTimeout(60000);
+			
+			conn.connect();
 			
 			String contentType = conn.getContentType();
 			System.out.println("contentType=" + contentType);
@@ -133,6 +156,11 @@ public class DownloadOriginalPic {
 			++i;
 		}
 		
+		/*System.out.println("=======================保存的图片名================");
+		System.out.println(dirFilename);*/
+		//logger.info("====================最终保存的图片文件名================");
+		logger.info("保存到本地的图片文件名：" + dirFilename);
+		
 		this.file = tmpFile;
 	}
 	
@@ -145,8 +173,9 @@ public class DownloadOriginalPic {
 	 * 
 	 * @param srcUrl  小图的地址
 	 */
-	private void changeToOriginalUrl(String srcUrl){
-		System.out.println("小图地址：" + "\n" + srcUrl);
+	private void changeToOriginalUrl(String srcUrl) throws IndexOutOfBoundsException {
+		//System.out.println("小图地址：" + "\n" + srcUrl);
+		logger.info("原始小图地址= " + srcUrl);
 		
 		//获取小图片的文件名，去掉后缀之前的_master1200就是原始大图的文件名
 		String srcFilename = srcUrl.substring(srcUrl.lastIndexOf("/") + 1, srcUrl.length());
@@ -174,7 +203,8 @@ public class DownloadOriginalPic {
 		}
 		
 		originalUrl = httpHeader + imgOriginal + imgdateStr + originalPicName;
-		System.out.println("原始大图地址：" + "\n" + originalUrl);
+		//System.out.println("原始大图地址：" + "\n" + originalUrl);
+		logger.info("原始大图地址= " + originalUrl);
 	}
 	
 	/**
@@ -183,22 +213,26 @@ public class DownloadOriginalPic {
 	 * 为了处理小图是jpg格式的图片，而原始大图却又是png格式的图片，所以再getPicture()方法外面
 	 * 再包一层，已处理找不到jpg格式的原始大图问题；
 	 * @param args
-	 * @throws IOException
+	 * @throws Exception 
 	 */
-	public void download(String picUrl, String filename) throws IOException{
+	public void download(String picUrl, String filename) throws IOException, IndexOutOfBoundsException{
 		try{
 			getPicture(picUrl, filename);
 		}catch(FileNotFoundException fileEx){
-			System.out.println("==================================================");
+			/*System.out.println("==================================================");
 			System.out.println("原小图地址：");
 			System.out.println(picUrl);
-			System.out.println("小图与大图的格式不匹配，现尝试以png格式请求图片的下载！");
+			System.out.println("小图与大图的格式不匹配，现尝试以png格式请求图片的下载！");*/
+			logger.warn("=======================图片格式不匹配==============================");
+			logger.warn("原小图地址：");
+			logger.warn(picUrl);
+			logger.warn("小图与大图的格式不匹配，现尝试以png格式请求图片的下载！");
 			picUrl = picUrl.replaceFirst("jpg", "png");
 			getPicture(picUrl, filename);
 		}
 	}
 	
-	public static void main(String[] args) throws IOException{
+	public static void main(String[] args) throws Exception{
 		DownloadOriginalPic demo = new DownloadOriginalPic();
 		String picUrl = "http://i2.pixiv.net/c/150x150/img-master/img/2017/03/17/00/00/43/61945597_p0_master1200.jpg";
 		String filename = "secondPhase";

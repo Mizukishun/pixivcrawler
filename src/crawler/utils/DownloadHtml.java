@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLDecoder;
 import java.util.Map;
 import java.util.zip.GZIPInputStream;
 
@@ -48,7 +49,7 @@ public class DownloadHtml {
 			conn.addRequestProperty("Cookie", cookie);
 			conn.addRequestProperty("DNT", "1");
 			conn.addRequestProperty("Host", "www.pixiv.net");
-			conn.addRequestProperty("Referer", "http://www.pixiv.net/");
+			conn.addRequestProperty("Referer", "https://www.pixiv.net/");
 			conn.addRequestProperty("Upgrade-Insecure-Requests", "1");
 			conn.addRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36");
 			
@@ -86,7 +87,10 @@ public class DownloadHtml {
 		//return html.toString();
 	}
 	
+	
+	
 	//测试
+	@SuppressWarnings("deprecation")
 	public static void main(String[] args){
 		DownloadHtml tmp = new DownloadHtml();
 		///String url = "http://www.pixiv.net/ranking_area.php?type=detail&no=5";		//今日国际排行榜
@@ -100,7 +104,13 @@ public class DownloadHtml {
 		//String url = "http://www.pixiv.net/ranking.php?mode=daily";				//综合今日排行榜
 		//String url = "http://www.pixiv.net/ranking.php?mode=daily&date=20170412";	//前一日的今日排行榜
 		//String url = "http://www.pixiv.net/ranking.php?mode=monthly&date=20170410";		//20170410日的综合本月排行榜也即20170312-20170410的排行榜
-		String url ="http://www.pixiv.net/bookmark_detail.php?illust_id=61246851";		//收藏的一张图片
+		//String url ="http://www.pixiv.net/bookmark_detail.php?illust_id=61246851";		//收藏的一张图片
+		//String url = "http://www.pixiv.net/bookmark_add.php?id=58280673";		//收藏图片
+		//String url = "https://www.pixiv.net/rpc/recommender.php?type=illust&sample_illusts=50243983&num_recommendations=500";		//获取收藏推荐ID
+		
+		//根据推荐的多个图片id来获取这些图片的地址
+		//String url = "https://www.pixiv.net/rpc/illust_list.php?illust_ids=51739759%2C50099922%2C50944690%2C47084218%2C52025622%2C52044837%2C49920423%2C47229266%2C53967130%2C49908298%2C52580481%2C59102950%2C47808763%2C48784184%2C55298735&verbosity=&exclude_muted_illusts=1";
+		String url = "https://www.pixiv.net/rpc/illust_list.php?illust_ids=51176125%2C49258389%2C49908880%2C51645544%2C49810303%2C49934602%2C45629088%2C49908488%2C56884511%2C50759967%2C49831074%2C49911367%2C50936724%2C51145109%2C50215790&verbosity=&exclude_muted_illusts=1";
 		
 		String html = "";
 		try {
@@ -110,7 +120,9 @@ public class DownloadHtml {
 			System.out.println("==========下载网页源码出错==============");
 			e.printStackTrace();
 		}
-		System.out.println("=================某一日综合本月排行榜=================");
+		
+		//html = URLDecoder.decode(html);
+		System.out.println("=================多个图片id对应的源码=================");
 		System.out.println(html);
 		//Map<String, String> picAddr = RegHtml.regRankingPageForPicAddr(html);
 	}

@@ -74,13 +74,13 @@ public class DownloadPageSourceCode {
 			conn.addRequestProperty("Cookie", "p_ab_id=3; p_ab_id_2=4; PHPSESSID=22834429_a7bd4b03f1a5409251074572ec5f4b69; device_token=3ff01dea2c65aad9a03dfe01ab07f3f2; a_type=0; is_sensei_service_user=1; login_ever=yes; __utmt=1; module_orders_mypage=%5B%7B%22name%22%3A%22recommended_illusts%22%2C%22visible%22%3Atrue%7D%2C%7B%22name%22%3A%22everyone_new_illusts%22%2C%22visible%22%3Atrue%7D%2C%7B%22name%22%3A%22following_new_illusts%22%2C%22visible%22%3Atrue%7D%2C%7B%22name%22%3A%22mypixiv_new_illusts%22%2C%22visible%22%3Atrue%7D%2C%7B%22name%22%3A%22fanbox%22%2C%22visible%22%3Atrue%7D%2C%7B%22name%22%3A%22featured_tags%22%2C%22visible%22%3Atrue%7D%2C%7B%22name%22%3A%22contests%22%2C%22visible%22%3Atrue%7D%2C%7B%22name%22%3A%22sensei_courses%22%2C%22visible%22%3Atrue%7D%2C%7B%22name%22%3A%22spotlight%22%2C%22visible%22%3Atrue%7D%2C%7B%22name%22%3A%22booth_follow_items%22%2C%22visible%22%3Atrue%7D%5D; _gat_UA-74360115-3=1; __utma=235335808.1102416087.1490788700.1490788700.1490788700.1; __utmb=235335808.7.10.1490788700; __utmc=235335808; __utmz=235335808.1490788700.1.1.utmcsr=(direct)|utmccn=(direct)|utmcmd=(none); __utmv=235335808.|2=login%20ever=yes=1^3=plan=normal=1^5=gender=female=1^6=user_id=22834429=1^9=p_ab_id=3=1^10=p_ab_id_2=4=1^12=fanbox_subscribe_button=orange=1^13=fanbox_fixed_otodoke_naiyou=yes=1^14=hide_upload_form=yes=1^15=machine_translate_test=no=1; _ga=GA1.2.1102416087.1490788700");
 			conn.addRequestProperty("DNT", "1");
 			conn.addRequestProperty("Host", "www.pixiv.net");
-			conn.addRequestProperty("Referer", "http://www.pixiv.net/member.php?id=4462245");
+			conn.addRequestProperty("Referer", "https://www.pixiv.net/member.php?id=4462245");
 			conn.addRequestProperty("Upgrade-Insecure-Request", "1");
 			conn.addRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36");
 			//conn.addRequestProperty("mode", "medium");
 			//conn.addRequestProperty("illust_id", "61367958");
-			conn.setConnectTimeout(30000);
-			conn.setReadTimeout(30000);
+			conn.setConnectTimeout(60000);
+			conn.setReadTimeout(60000);
 			conn.connect();
 			
 			String contentType = conn.getContentType();
@@ -174,17 +174,17 @@ public class DownloadPageSourceCode {
 	
 	/**
 	 * 根据会员的id，获取会员的所有作品的小图地址
-	 * 如http://www.pixiv.net/member_illust.php?id=4462245
+	 * 如https://www.pixiv.net/member_illust.php?id=4462245
 	 * 这个页面上便是id=4462245这个P站会员的个人所有作品，在这个页面上边有这些作品的地址
 	 * 如：http://i4.pixiv.net/c/150x150/img-master/img/2016/12/25/14/21/03/60547339_p0_master1200.jpg
-	 * <del>如：http://www.pixiv.net/member_illust.php?mode=medium&illust_id=60680252</del>
+	 * <del>如：https://www.pixiv.net/member_illust.php?mode=medium&illust_id=60680252</del>
 	 * 
 	 * 
 	 * @param args
 	 * @throws IOException
 	 */
 	public List<String> getWorksUrlByMemId(String id){
-		String memUrlPrefix = "http://www.pixiv.net/member_illust.php?id=";
+		String memUrlPrefix = "https://www.pixiv.net/member_illust.php?id=";
 		String memUrl = memUrlPrefix + id;
 		List<String> allWorksUrl = new ArrayList<>();
 		
@@ -274,7 +274,7 @@ public class DownloadPageSourceCode {
 	 * <span class="count-badge">979件</span>
 	 * 
 	 * 而每页作品的链接地址都是如下所示的
-	 * http://www.pixiv.net/member_illust.php?id=440400&type=all&p=4
+	 * https://www.pixiv.net/member_illust.php?id=440400&type=all&p=4
 	 * 
 	 * @param html
 	 * @return
@@ -320,9 +320,9 @@ public class DownloadPageSourceCode {
 		}
 		System.out.println("============================获取到的作品页面==============================");
 		System.out.println("总共有" + pageCount + "页\n链接如下：");
-		//http://www.pixiv.net/member_illust.php?id=440400&type=all&p=4
+		//https://www.pixiv.net/member_illust.php?id=440400&type=all&p=4
 		//拼凑链接地址
-		String worksPagePrefix = "http://www.pixiv.net/member_illust.php?id=";
+		String worksPagePrefix = "https://www.pixiv.net/member_illust.php?id=";
 		String worksPageSuffix = "&type=all&p=";
 		for(int i = 1; i <= pageCount; i++){
 			String pageUrl = worksPagePrefix + id + worksPageSuffix + i;
@@ -556,7 +556,7 @@ public class DownloadPageSourceCode {
 			
 			if(matcher.find()&&idmatcher.find()){
 				String suffix = matcher.group(0);
-				String link = "http://www.pixiv.net/" + suffix;
+				String link = "https://www.pixiv.net/" + suffix;
 				
 				String followersId = idmatcher.group(0);
 				followersId = followersId.substring(14, followersId.length()-1);
@@ -605,7 +605,7 @@ public class DownloadPageSourceCode {
 			String tmp = matcher.group(0);
 			//System.out.println(tmp);
 			
-			String prefix = "http://www.pixiv.net/";
+			String prefix = "https://www.pixiv.net/";
 			tmp = tmp.replaceAll("&amp;", "&");
 			tmp = tmp.substring(0, tmp.length()-7);
 			String link = prefix + tmp;
@@ -638,7 +638,7 @@ public class DownloadPageSourceCode {
 		//关注的用户的页数的链接如下所以
 		//http://www.pixiv.net/bookmark.php?type=user&id=394141&rest=show&p=3
 		//拼凑每页的链接
-		String prefixLink = "http://www.pixiv.net/bookmark.php?type=user&id=";
+		String prefixLink = "https://www.pixiv.net/bookmark.php?type=user&id=";
 		String suffixLink = "&rest=show&p=";
 		
 		for(int i = 1; i <= pageCount; i++){
@@ -674,7 +674,7 @@ public class DownloadPageSourceCode {
 		Map<String, String> followersFavoriteLink = new HashMap<>();
 		
 		//所关注的用户第一页
-		String followersUrlPrefix = "http://www.pixiv.net/bookmark.php?type=user&id=";
+		String followersUrlPrefix = "https://www.pixiv.net/bookmark.php?type=user&id=";
 		String followersUrl = followersUrlPrefix + id;
 		
 		//获取第一页的源代码，从中找出第一页所有关注的用户的id，以及是否有多页的关注用户
@@ -769,7 +769,7 @@ public class DownloadPageSourceCode {
 	
 	public String getAuthorNameById(String id){
 		String name = "";
-		String memUrlPrefix = "http://www.pixiv.net/member_illust.php?id=";
+		String memUrlPrefix = "https://www.pixiv.net/member_illust.php?id=";
 		String memUrl = memUrlPrefix + id;
 		
 		/*if(worksPageHtml == null || worksPageHtml == ""){
@@ -872,7 +872,7 @@ public class DownloadPageSourceCode {
 	 */
 	public Map<String, String> getFavoriteWorksUrlByMemId(String id){
 		//成员收藏图片的页面地址
-		String prefix_url = "http://www.pixiv.net/bookmark.php?id=";
+		String prefix_url = "https://www.pixiv.net/bookmark.php?id=";
 		String url = prefix_url + id;
 		
 		//根据该地址获取收藏图片页面的源码
@@ -905,7 +905,7 @@ public class DownloadPageSourceCode {
 		//http://www.pixiv.net/bookmark.php?id=512849&rest=show&p=2
 		List<String> pageUrls = new ArrayList<>();
 		for(int i = 1; i <= pageCounts; i++){
-			pageUrls.add("http://www.pixiv.net/bookmark.php?id=" + id + "&rest=show&p=" + i);
+			pageUrls.add("https://www.pixiv.net/bookmark.php?id=" + id + "&rest=show&p=" + i);
 		}
 		
 		
@@ -939,6 +939,7 @@ public class DownloadPageSourceCode {
 	
 	public static void main(String[] args) throws IOException{
 		//String url = "http://www.pixiv.net/member_illust.php?mode=medium&illust_id=59665229";
+		String url = "https://www.pixiv.net/member_illust.php?id=58338";
 		//String id = "4462245";		//幻像黒兎
 		//String id="27517";				//藤原
 		//String id = "490219";			//Hiten
@@ -949,8 +950,8 @@ public class DownloadPageSourceCode {
 		String id = "394141";
 		DownloadPageSourceCode demo = new DownloadPageSourceCode();
 		//demo.getFavoriteWorksUrlByMemId(id);
-		//List<String> worksUrls = demo.getWorksUrlByMemId(id);
-		Followers followers = demo.getFollowersById(id);
+		List<String> worksUrls = demo.getWorksUrlByMemId(id);
+		//Followers followers = demo.getFollowersById(id);
 		
 		
 		

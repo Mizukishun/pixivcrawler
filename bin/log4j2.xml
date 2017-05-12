@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Configuration status="WARN" monitorInterval="300">
+	<Appenders>
+		<Console name="Console" target="SYSTEM_OUT" >
+			<PatternLayout pattern="%d{HH:mm:ss} [%t] %-5level %logger{36} -%msg%n" />
+		</Console>
+		<File name="myFile" filename="F:/crawlerTest/log/pixivLog.log">
+			<PatternLayout pattern="%d{HH:mm::ss} [%t] %-5level %logger{36} -%msg%n" />
+		</File>
+	</Appenders>
+	<Loggers>
+		<Logger name="mylog" level="trace" additivity="true">
+			<AppenderRef ref="myFile" />
+		</Logger>
+		<Root level="warn">
+			<AppenderRef ref="Console" />
+		</Root>
+	</Loggers>
+</Configuration>
